@@ -1,0 +1,2209 @@
+Program AshamanAltars;
+  {$Define Smart}
+  {$I SRL/SRL.Simba}
+  {$I SRL/SRL/Misc/Debug.Simba}
+  {$i srl/srl/misc/paintsmart.simba}
+
+Var
+  PTS: Integer;
+
+{
+AshamanAltars V1.10
+-Start at CW bank (or Tzhaar if using that option)
+-Have Teletohousetabs in your inventory
+-Make sure the bones you want to use are in the top right slot of your bank
+-Make sure rings of dueling (if using) and marrentil are visible in bank, try not to have too much green stuff similar to them in same tab.
+-If using Tzhaar ring, make sure you start with it equipped.
+-If using a familiar, do NOT have it summoned prior to starting script.
+-If using a familiar, have spare pouches and summoning pots visible in bank tab.
+-If using a familiar, make sure left click option is set to "take bob"
+-Make sure to fill in the required info below.
+}
+
+
+                                          //Fill these in.
+
+Const
+  SRLStats_Username = '';         // Leave blank if you don't have a stats account
+  SRLStats_Password = '';
+  RingType          = 'duel';         // Which type of ring are you using? (Duel,TzHaar)
+  AltarDirection    = 'w';         // Cardinal direction from entrance to where your altar room is (N,E,S,W)
+  HouseDesign       = 'basicstone';         // House style (Zenev,BasicWood,BasicStone,Tropical)
+  BurnerType        = 'marble';         // Which type of burner do you have? (Incense(means oak),Mahogany,Marble)
+  AltarPlace        = 'side';         // From the doorway is your altar at the top of the room or side? Ex If I walk
+                                  // into your room would I have to go to the "top" of the room, or a "side" to get to it?
+                                  // input (Top, or Side)
+
+Procedure DeclarePlayers;
+Begin
+  HowManyPlayers := 1;
+  NumberOfPlayers(HowManyPlayers);
+  CurrentPlayer := 0;
+  With Players[0] Do
+  Begin
+    Name        := '';
+    Pass        := '';
+    Pin         := '';
+    PTS         := 1;         //Pouch to summon, 1 for terrorbird, 2 for wartort, 3 for yak, 0 for nothing
+    BoxRewards  := ['Coins', 'oins'];
+    Active      := True;
+  End;
+End;
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                  //
+//                        By: Ashaman88                                                             //
+//               Don't touch below this line unless you know what you're doing!!                    //
+//                                                                                                 //
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Const
+  ScriptVersion = '1.10' ;          //No touchy
+  Debug = true;
+
+Var
+ BankTime,Ring,HerbDTM,RingDTM,TabDTM,BoneCount,XP,StartTime,StartingExperience,BonesPH,XPH,DoorX1,DoorY1,DoorX2,DoorY2: Integer;
+ DoorHue,DoorSat,BurnerHue,BurnerSat: Extended;
+ DoorColor,DoorTolerance,SummoningTimer,Summoning,Empty,BurnerColor,BurnerTolerance,TRingDTM: Integer;
+ Pouch,AltarX1,AltarY1,AltarX2,AltarY2, NewPouch,Sec,Bones,Lengths,MaxLength,BurnerLength: Integer;
+ LProc,Direction: String;
+ StartSummon,SecondSummon: Boolean;
+
+
+Procedure SetDTM;
+Begin
+  TabDTM := DTMFromString('mQwAAAHicY2ZgYMhlYmBIAeIyIH4E5L8D4vdAvGj2bIaosDCG4IAABhEgH4YZkTAQAABZdggg');
+  HerbDTM := DTMFromString('mWAAAAHicY2FgYJjOCMHzgLgfiI8AxfYC8UEgPgrEPGF8DHzJAhCcLsjADxRDxoxoGAQA1cYHow==');
+  RingDTM := DTMFromString('mWAAAAHicY2FgYGAFYk4GCOACYg4omweKXVwcGESnSzKsmCDBUJ0lyGAEFEPGjGgYBADTGwTc');
+  TRingDTM := DTMFromString('mQwAAAHicY2ZgYNjOxMBwAIi3AnELIwNDNRBXAfGDPbUMF9aXMBxZksvAD1QHw4xIGAgAlsAJww==');
+  Summoning := DTMFromString('mWAAAAHicY2FgYHBigmBXIPYEYn1GBgYrILaE4vz8Ega5a3cZZC/dBKpmYkgBkuxImBENgwAAgewHaA==');              //Potion to drink.
+  Empty := DTMFromString('mbQAAAHicY2VgYHBkYmBwBWJ7KHYDYh5GBgYOKBYDYhEgTkxMZbC1c2BIS8tmiE9IYQgKDmPgAupHx4xYMBgAAMSrBxM=');      //emptypot
+End;
+
+Procedure F33DTM;
+Begin
+  FreeDTM(TabDTM);
+  FreeDTM(HerbDTM);
+  FreeDTM(RingDTM);
+  FreeDTM(TRingDTM);
+  FreeDTM(Summoning);
+  FreeDTM(Empty);
+  FreeDTM(Pouch);
+End;
+
+
+{*******************************************************************************
+Function ProgressReport;
+By: Sin and parts by Shuttleu
+Edited By: Ashaman88
+Description: Will Make a progress report.
+*******************************************************************************}
+
+Procedure ProgressReport;
+Begin
+  If Not Debug Then
+    ClearDebug;
+
+  BoneCount := BoneCount + Bones;
+  XP := (GetXPBarTotal - StartingExperience);
+  Sec:= (1+((Getsystemtime-StartTime)/1000));
+  XPH:= Round(((XP) / (GetTimeRunning / 1000)) * 3600);
+ // XPH :=  (3600 * XP) / (Sec);
+  BonesPH := (3600*BoneCount) / (SeC);
+
+  Writeln('=========AshamanAltars=========');
+  Writeln('=========Version: '+ScriptVersion+'=========');
+  Writeln('Time Running: ' + TimeRunning);
+  Writeln('Bones Used: ' + IntToStr(BoneCount));
+  Writeln('Experience Earned: ' + IntToStr(XP));
+  Writeln('Experience/Hour: ' + IntToStr(XPH));
+  Writeln('Bones/H: ' + IntToStr(BonesPH));
+  Writeln('===============================');
+
+End;
+
+ {*******************************************************************************
+
+By: GGzz , edited
+
+*******************************************************************************}
+
+Function WaitGameTab(Tab, TimeToWait: Integer): Boolean;
+Var
+  T: Integer;
+begin
+  Result := False;
+  If Debug Then
+    Writeln('WAITING ON TAB '+ToStr(Tab));
+  T := GetSystemTime + TimeToWait;
+  while (GetSystemTime < T) do
+  begin
+    if (GetCurrentTab = Tab) then
+    begin
+      Result := True;
+      Exit;
+    end;
+    Wait(20 + Random(10));
+    GameTab(Tab);
+  end;
+end;
+
+ {*******************************************************************************
+
+By: Sin , edited
+
+*******************************************************************************}
+
+function WaitInvCountInc(Time:Integer):Boolean;
+var
+  Inv1,Inv2,t:Integer;
+begin
+  MarkTime(t);
+  Inv1 := InvCount;
+  repeat
+    wait(10);
+    Inv2 := InvCount;
+    if TimeFromMark(t) > Time then
+    begin
+      Result := False;
+      Exit;
+    end;
+  until(Inv2 > Inv1);
+  Result := True;
+end;
+
+  {*******************************************************************************
+
+By: Sin , edited
+
+*******************************************************************************}
+
+function WaitInvCountDec(Time:Integer):Boolean;
+var
+  Inv1,Inv2,t:Integer;
+begin
+  MarkTime(t);
+  Inv1 := InvCount;
+  repeat
+    wait(10);
+    Inv2 := InvCount;
+    if TimeFromMark(t) > Time then
+    begin
+      Result := False;
+      Exit;
+    end;
+  until(Inv2 < Inv1);
+  Result := True;
+end;
+
+ {*******************************************************************************
+
+All of these mouse movements are credited to benland100 and flight
+
+*******************************************************************************}
+
+
+//By Bandland100, modified to shift mouse speeds after every step
+Procedure SuperWindMouse(xs, ys, xe, ye, gravity, wind, minWait, maxWait, maxStep, targetArea: extended);
+Var
+  veloX,veloY,windX,windY,veloMag,dist,randomDist,lastDist,step: extended;
+  lastX,lastY,MSP,W: integer;
+  sqrt2,sqrt3,sqrt5: extended;
+Begin
+  MSP  := MouseSpeed;
+  sqrt2:= sqrt(2);
+  sqrt3:= sqrt(3);
+  sqrt5:= sqrt(5);
+  While hypot(xs - xe, ys - ye) > 1 Do
+  Begin
+    dist:= hypot(xs - xe, ys - ye);
+    wind:= minE(wind, dist);
+    If dist >= targetArea Then
+    Begin
+      windX:= windX / sqrt3 + (random(round(wind) * 2 + 1) - wind) / sqrt5;
+      windY:= windY / sqrt3 + (random(round(wind) * 2 + 1) - wind) / sqrt5;
+    End Else
+    Begin
+      windX:= windX / sqrt2;
+      windY:= windY / sqrt2;
+      If (maxStep < 3) Then
+      Begin
+        maxStep:= random(3) + 3.0;
+      End Else
+      Begin
+        maxStep:= maxStep / sqrt5;
+      End;
+    End;
+    veloX:= veloX + windX;
+    veloY:= veloY + windY;
+    veloX:= veloX + gravity * (xe - xs) / dist;
+    veloY:= veloY + gravity * (ye - ys) / dist;
+    if hypot(veloX, veloY) > maxStep then
+    Begin
+      randomDist:= maxStep / 2.0 + random(round(maxStep) div 2);
+      veloMag:= sqrt(veloX * veloX + veloY * veloY);
+      veloX:= (veloX / veloMag) * randomDist;
+      veloY:= (veloY / veloMag) * randomDist;
+    End;
+    lastX:= Round(xs);
+    lastY:= Round(ys);
+    xs:= xs + veloX;
+    ys:= ys + veloY;
+
+    Case Random(50) Of
+      1..25: W := (MSP + (Random((MSP/4))));
+      26..50: W := (MSP - (RandomRange((MSP/2), MSP-1)));
+    End;
+    If (W < 1) Then
+      W := 1;
+
+    If (lastX <> Round(xs)) Or (lastY <> Round(ys)) Then
+      MoveMouse(Round(xs), Round(ys));
+
+    step:= hypot(xs - lastX, ys - lastY);
+    //W := round((maxWait - minWait) * (step / maxStep) + minWait);
+    wait(W);
+    lastdist:= dist;
+  End;
+
+  If (Round(xe) <> Round(xs)) or (Round(ye) <> Round(ys)) Then
+    MoveMouse(Round(xe), Round(ye));
+
+  MouseSpeed := MSP;
+End;
+
+Procedure HumanMMouse(eX, eY, ranX, ranY: Integer);
+Var
+  randSpeed: extended;
+  X,Y,X2,Y2,j,Dist,MP: integer;
+Begin
+  j := MouseSpeed;
+  GetMousePos(X, Y);
+  Dist := Distance(X, Y, eX, eY);
+  MP := Round(Dist/150);
+  If MP < 0 Then
+    MP := 1;
+
+  randSpeed := (random(MouseSpeed) / 2.0 + MouseSpeed) / 10.0;
+  X2 := RandomRange(eX-(j*MP), eX+(j*MP));
+  Y2 := RandomRange(eY-(j*MP), eY+(j*MP));
+  SuperWindMouse(X, Y, X2, Y2, 11, 8, 10.0 / randSpeed, 12.0 / randSpeed, 10.0 * randSpeed, 10.0 * randSpeed);
+  GetMousePos(X, Y);
+  MMouse(eX, eY, ranX, ranY);
+  MouseSpeed := j;
+End;
+
+Function UsingFamiliarFS: Boolean;
+Var
+  CTS: Integer;
+  TPA: TPointArray;
+Begin
+
+  CTS:= GetColorToleranceSpeed;
+  SetColorToleranceSpeed(2);
+  SetColorSpeed2Modifiers(0.18, 0.88);
+  Result:= FindColorsTolerance(TPA, 8763221, 692, 130, 721, 160, 21);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+  ColorToleranceSpeed(CTS);
+
+End;
+
+Function UsingFamiliar: Boolean;              //By Flight.   Modified highly!
+Var
+  X, Y: Integer;
+Begin
+  Result := UsingFamiliarFS Or FindColorTolerance(X, Y, 11192179, 695, 130, 720, 155, 20);
+  If (Not Result) Then
+  Begin
+    If FindColorTolerance(X, Y, 3426817, 695, 130, 720, 155, 20) Then
+    Begin
+      Result:= False;
+      If Debug Then
+        Writeln('NOT USING FAMILIAR');
+      Exit;
+    End;
+
+    HumanMMouse(708, 144, 5, 5);
+
+    Repeat
+      GetMousePos(X, Y);
+      Wait(RandomRange(200,300));
+    Until(PointInBox(Point(X, Y), IntToBox(691, 131, 720, 159)));
+
+    Result:= (Not WaitUptextMulti(['elect', 'lect'], RandomRange(400,500)));
+  End;
+
+
+End;
+
+Function SummonPoints: Integer;
+Var
+  ColourString: String;
+Begin
+  Result:= GetMMLevels('summon', ColourString);
+End;
+
+Procedure DismissFamiliar;
+Var
+  T: Integer;
+Begin
+  If Debug Then
+    Writeln('USING FAMILIAR, ATTEMPTING TO DISMISS');
+
+  MouseBox(697,134,712,151,Mouse_Right);
+
+  If WaitOption('miss',2000) Then
+  Begin
+    If Debug Then
+      Writeln('FOUND OPTION TO DISMISS');
+
+    MarkTime(T);
+    Repeat
+      Wait(100);
+      FindNormalRandoms;
+
+      If TimeFromMark(T)>6000 Then
+      Begin
+        If Debug Then
+          Writeln('DIDNT FIND NPC CHAT, EXITING');
+        Exit;
+      End;
+    Until FindNPCChatText('Yes',ClickLeft);
+    While UsingFamiliar Do
+      Wait(100);
+  End;
+End;
+
+Function SummoningRenew(PouchToSummon: integer): Boolean;
+Var
+  X,Y,Tries: Integer;
+Begin
+  LProc:= 'SummoningRenew';
+
+  If PTS = 0 Then
+  Begin
+    If Debug Then
+      Writeln('PTS=0');
+    Bones:=25;
+    Exit;
+  End;
+
+  If (GetCurrentTab <> Tab_Inv) Then
+    WaitGameTab(Tab_Inv,5000);
+
+  If (Not WaitFindDTMEx(Pouch, X, Y, MIX1, MIY1, MIX2, MIY2,100,5000)) Then
+  Begin
+    If Debug Then
+      Writeln('DID NOT FIND POUCH, PTS=0');
+    PTS := 0;
+    Exit;
+  End;
+
+  If(FindDTM(Summoning, x, y, MIX1, MIY1, MIX2, MIY2)) Then
+    If (SummonPoints < 10) Then
+    Begin
+      If Debug Then
+        Writeln('Need to Refill Summoning Points.');
+
+      If(FindDTM(Summoning, X, Y, MIX1, MIY1, MIX2, MIY2)) Then
+      Begin
+        If Debug Then
+          Writeln('FOUND SUMMONING POT');
+
+        HumanMMouse(X, Y + 5, 0, 0);
+
+        If WaitUptextMulti(['ummoning', 'potion','Summon','poti','tion','ummon','moning'], 500) Then
+        Begin
+          If Debug Then
+            Writeln('FOUND DRINK UPTEXT');
+          ClickMouse2(False);
+          WaitOptionMulti(['rink', 'Drink', 'rink Summoning', 'Drink Summoning'],RandomRange(400,500));
+          Wait(2000);
+        End;
+
+        If FindDTM(Empty, X, Y, MIX1, MIY1, MIX2, MIY2) Then
+        Begin
+          HumanMMouse(X, Y + 5, 0, 0);
+
+          If WaitUptextMulti(['ial', 'Vial'], 500) Then
+          Begin
+            If Debug Then
+              Writeln('FOUND VIAL UPTEXT');
+            ClickMouse2(False);
+            WaitOptionMulti(['Drop', 'rop', 'p Vial', 'Drop Vial'],RandomRange(400,500));
+            Wait(2000);
+          End;
+        End;
+      End;
+    End;
+
+    If (SummonPoints < 10) then
+    Begin
+      If Debug Then
+        Writeln('SUMMONING POINTS TOO LOW, PTS=0');
+      PTS := 0;
+      Exit;
+    End;
+
+    Tries := 0;
+    If(FindDtm(Pouch, X, Y, MIX1, MIY1, MIX2, MIY2)) Then
+    Repeat
+      If Debug Then
+        Writeln('FOUND POUCH ATTEMPTING TO SUMMON');
+
+      If UsingFamiliar Then
+        Break;
+
+      If FindNormalRandoms Then
+      Begin
+        MakeCompass('N');
+        SetAngle(SRL_ANGLE_HIGH);
+      End;
+
+      HumanMMouse(X, Y, 5, 5);
+
+      ClickMouse2(False);
+
+      WaitOption('Summon',500);
+
+      Wait(RandomRange(1000,2000));
+
+      If(FindBlackChatMessage('follower')) Then
+        Break;
+
+      Tries:= Tries + 1;
+
+      If (Tries > 5) Then
+      Begin
+        If Debug Then
+          Writeln('FAILED TO SUMMON');
+        Exit;
+      End;
+    Until(UsingFamiliar = True);
+
+  SummoningTimer:=0;
+  MarkTime(SummoningTimer);
+
+  Result:= UsingFamiliar;
+End;
+
+Function StoreBOB: Boolean;
+Var
+  T:integer;
+  Jumper: Boolean;
+Label
+  Jump;
+Begin
+  If Debug Then
+    Writeln('ENTERING BOB FUNCTION');
+  Result:=False;
+  Jumper:=False;
+
+  If Not Loggedin Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    If Not LoggedIn Then
+      TerminateScript;
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  If Debug then
+    Writeln('WAITING FOR BOB');
+
+  If Not UsingFamiliar Then
+  Begin
+    If Debug Then
+      Writeln('No More FAMILIAR');
+    PTS:=0;
+    Exit;
+  End;
+
+  MouseBox(697,134,712,151,Mouse_Right);
+
+  Wait(RandomRange(300,400));
+
+  If WaitOptionMulti(['act','Inte','Interact','eract'],1500) Then
+  Begin
+    If Debug Then
+      Writeln('FOUND OPTION TO INTERACT');
+
+    MarkTime(T);
+    Repeat
+      Wait(100);
+
+      If FindNormalRandoms Then
+      Begin
+        If Not LoggedIn Then
+          TerminateScript;
+        MakeCompass(Direction);
+        SetAngle(SRL_ANGLE_HIGH);
+        StoreBOB;
+        Exit;
+      End;
+
+      If TimeFromMark(T)>5000 Then
+      Begin
+        If Debug Then
+          Writeln('FAILED TO FINE NPC OPTION TO STORE');
+        Exit;
+      End;
+    Until FindNPCChatText('tore',Nothing);
+
+    TypeSendEx('2',False);
+  End;
+
+  MarkTime(T);
+  Repeat
+    InvMouse(RandomRange(6,10),3);
+    If TimeFromMark(T)>5000 Then
+    Begin
+      If Debug then
+        Writeln('FAILED FIND BONES IN INVENTORY');
+      Jumper:=True;
+      Break;
+    End;
+  Until WaitUpTextMulti(['ones','Bones','bones','one','Bon','nes','Bo','bo','ne','Drag','agon','drag','gon','Frost','rost','ost','Ashes','Ash','ash','hes'],RandomRange(200,250));
+
+  If Jumper Then
+    GoTo Jump;
+
+  If Debug then
+    Writeln('FOUND BONES IN INVENTORY');
+
+  If WaitUpTextMulti(['Store','tore'],RandomRange(5000,6000))  Then
+  Begin
+    If Debug then
+      Writeln('FOUND STORE OPTION FOR BONES');
+
+    ClickMouse2(False);
+
+    If WaitOptionMulti(['re-A','-All','ll F','ll D','ll B'],RandomRange(2000,3000)) Then
+    Begin
+      If Debug then
+        Writeln('FOUND OPTION DEPOSIT ALL');
+
+      Wait(RandomRange(400,500));
+      Result:=True;
+      BankTime:=2;
+    End;
+  End;
+
+  Jump:
+  MOUSEBOX(420,38,430,46,MOUSE_MOVE);
+
+  If Debug then
+    Writeln('TRYING TO CLOSE WINDOW');
+
+  MarkTime(T);
+  Repeat
+    Wait(100);
+    If TimeFromMark(T)>4000 Then
+    Begin
+      If Debug Then
+        Writeln('INVENTORY COUNT DIDNT GO DOWN');
+      Break;
+    End;
+  Until InvCount<24;
+
+  If WaitUpTextMulti(['Close','lose'],2000) Then
+    ClickMouse2(True);
+
+  MarkTime(T);
+  REPEAT
+    WAIT(100);
+
+    If FindNormalRandoms Then
+    Begin
+      If Not LoggedIn Then
+        TerminateScript;
+      MakeCompass(Direction);
+      SetAngle(SRL_ANGLE_HIGH);
+      StoreBOB;
+      Exit;
+    End;
+
+    If TimeFromMark(T)>10000 Then
+    Begin
+      If Debug Then
+        Writeln('FAILED TO CLOSE SUMMONING INTERFACE');
+      Break;
+    End;
+  UNTIL NOT ISUPTEXTMULTICUSTOM(['Close','lose']);
+End;
+
+Function TzBank: Boolean;
+Var
+  X,Y,H,I,CTS: Integer;
+  pArray: TPointArray;
+  aPArray: T2DPointArray;
+Begin
+  If Debug Then
+    Writeln('ENTERING TZBANK FUNCTION');
+
+  Result:=False;
+
+  If (Not(LoggedIn)) Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    If Not LoggedIn Then
+      TerminateScript;
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  MouseSpeed := RandomRange(18, 23);
+
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+
+  SetColorSpeed2Modifiers(0.38, 2.44);
+  FindColorsSpiralTolerance(MSCX, MSCY, pArray, 6196938, MSX1, MSY1, MSX2, MSY2, 21);
+
+  aPArray := TPAtoATPAEx(pArray, 40, 40);
+
+  SortATPASize(aPArray,True);
+
+  If Debug Then
+    DebugATPABounds(aPArray);
+
+  If (Length(aPArray) = 0) Then
+  Begin
+    ColorToleranceSpeed(CTS);
+    SetColorSpeed2Modifiers(0.2, 0.2);
+    If Debug Then
+      Writeln('NO COLORS FOUND, TZHAAR BANKER');
+    Exit;
+  End;
+
+  H := High(aPArray);
+
+  For I := 0 To H Do
+  Begin
+    MiddleTPAEx(aPArray[I], X, Y);
+
+    If Debug Then
+      Writeln(tostr(Length(aPArray[I])));
+
+    If (Length(aPArray[I]) < 200) then
+      Continue;
+
+    MMouse(X,Y,4,4);
+
+    Wait(RandomRange(200, 300));
+
+    If (WaitUpTextMulti(['Mej','Talk','Jal'],RandomRange(200,250))) Then
+    Begin
+      If Debug Then
+        Writeln('FOUND BANKER');
+
+      ClickMouse2(False);
+
+      If WaitOption('ank',RandomRange(400,500)) Then
+      Begin
+        If Debug Then
+          Writeln('FOUND OPTION TO OPEN BANK');
+        ColorToleranceSpeed(CTS);
+        SetColorSpeed2Modifiers(0.2, 0.2);
+        Result:=True;
+        Exit;
+      End;
+    End;
+  End;
+  ColorToleranceSpeed(CTS);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+End;
+
+
+ {*******************************************************************************
+
+By: Flight and GGzz
+
+*******************************************************************************}
+
+Function GetRingCount: Integer;
+var
+  S, S2: String;
+begin
+  If Debug Then
+    Writeln('ENTERING GETRINGCOUNT FUNCTION');
+  GameTab(tab_equip);
+  if WearingItem(11) then
+  begin
+    MouseEquippedItem('ring', 3);
+    Wait(RandomRange(175, 350));
+    S := GetUpText;
+    Wait(RandomRange(175, 350));
+    S2 := Between('(', ')', S);
+    if not (S2 = '') then
+    begin
+      If Debug Then
+        Writeln('We have '+S2+' ring charges left');
+      Result := StrToIntDef(S2, 8);
+    end
+  end else
+    Result := 0;
+end;
+
+Procedure ToBank;
+Var
+  X,Y,T,R: integer;
+Begin
+  If Debug Then
+    Writeln('ENTERING TOBANK PROCEDURE');
+
+  If Not LoggedIn Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    If Not LoggedIn Then
+      TerminateScript;
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  WaitGameTab(Tab_Equip,5000);
+
+  If LowerCase(RingType)='duel' Then
+  Begin
+    If Debug Then
+      Writeln('RINGTYPE DUEL');
+
+    R:= GetRingCount
+    Ring:= R - 1;
+
+    If R<>0 Then
+    Begin
+      If Debug then
+        Writeln('FOUND RING TELEPORTING');
+      ClickMouse2(False);
+
+      WaitOptionMulti(['astle','Cast','stle'],900);
+
+      If Debug then
+        Writeln('WAITING FOR BANK');
+
+      WaitGameTab(Tab_Inv,5000);
+
+      If LowerCase(AltarDirection)='s' Then
+        MakeCompass('N');
+
+      SetAngle(SRL_ANGLE_HIGH);
+
+      MarkTime(T);
+      Repeat
+        Wait(100);
+        If TimeFromMark(T)>10000 Then
+        Begin
+          If Debug Then
+            Writeln('DIDNT FIND BANK SYMBOL');
+          Break;
+        End;
+      Until FindSymbol(x,y,'Bank');
+
+    End Else
+    Begin
+      Writeln('COULDNT FIND DUEL RING TO GET TO BANK, TERMINATING');
+      TerminateScript;
+    End;
+  End Else
+  Begin
+    If Debug Then
+      Writeln('RINGTYPE TZHAAR');
+    If WaitFindDTMEx(TRingDTM,X,Y,MIX1,MIY1,MIX2,MIY2,50,3000) Then
+    Begin
+      If Debug then
+        Writeln('FOUND RING TELEPORTING');
+
+      HumanMMouse(X,Y,4,4);
+      ClickMouse2(False);
+
+      WaitOptionMulti(['port','Tele','lepo'],900);
+
+      MarkTime(T);
+      Repeat
+        Wait(100);
+        If TimeFromMark(T)>5000 Then
+        Begin
+          If Debug Then
+            Writeln('DIDNT FIND NPC CHAT CAVES');
+          Exit;
+        End;
+      Until FindNPCChatTextMulti(['aves','Cave','Caves'],Nothing);
+
+      TypeSendEx('3',False);
+
+      If Debug then
+        Writeln('WAITING FOR BANK');
+
+      WaitGameTab(Tab_Inv,5000);
+
+      If LowerCase(AltarDirection)='s' Then
+        MakeCompass('N');
+
+      MarkTime(T);
+      Repeat
+        Wait(100);
+        If TimeFromMark(T)>10000 Then
+        Begin
+          If Debug then
+            Writeln('DIDNT FIND BANK OR MINIGAME SYMBOL');
+          Break;
+        End;
+      Until (FindSymbol(x,y,'Bank')) Or (FindSymbol(X,Y,'Minigame'));
+    End Else
+    Begin
+      Writeln('COULDNT FIND TZHAAR RING, TERMINATING');
+      TerminateScript;
+    End;
+  End;
+End;
+
+Function BankingFailSafe: Boolean;
+Var
+  X,Y,H,I,CTS,T: Integer;
+  pArray: TPointArray;
+  aPArray: T2DPointArray;
+Begin
+  If Debug then
+    Writeln('ENTERING BANKINGFAILSAFE FUNCTION');
+
+  If Not Loggedin Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    If Not LoggedIn Then
+      TerminateScript;
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  MouseSpeed := RandomRange(18, 23);
+
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+
+  SetColorSpeed2Modifiers(0.09, 0.59);
+  FindColorsSpiralTolerance(MSCX, MSCY, pArray, 11514307, 273, 116, 325, 231, 20);
+
+  aPArray := SplitTPAEx(pArray, 10, 10);
+
+  SortATPASize(aPArray,True);
+
+  If Debug Then
+    DebugATPABounds(aPArray);
+
+  If (Length(aPArray) = 0) Then
+  Begin
+    ColorToleranceSpeed(CTS);
+    SetColorSpeed2Modifiers(0.2, 0.2);
+    If Debug then
+      Writeln('DIDNT FIND ANY CHEST COLORS');
+    Exit;
+  End;
+
+  H := High(aPArray);
+
+  For I := 0 To H Do
+  Begin
+    MiddleTPAEx(aPArray[I], X, Y);
+
+    If Debug Then
+      Writeln(tostr(Length(aPArray[I])));
+
+    If Length(aPArray[I]) < Lengths then
+      Continue;
+
+    HumanMMouse(X,Y,4,4);
+
+     If (WaitUpTextMulti(['Bank','chest','ches','k ch'],RandomRange(300,400))) Then
+    Begin
+      If Debug then
+        Writeln('FOUND Bank UPTEXT');
+
+      ClickMouse2(False);
+
+      If WaitOption('Bank',RandomRange(400,500)) Then
+      Begin
+        If Debug then
+          Writeln('FOUND USE OPTION');
+
+        ColorToleranceSpeed(CTS);
+        SetColorSpeed2Modifiers(0.2, 0.2);
+
+        MarkTime(T);
+        Repeat
+          Wait(100);
+
+          If FindNormalRandoms Then
+          Begin
+            If Not LoggedIn Then
+              TerminateScript;
+            MakeCompass(Direction);
+            SetAngle(SRL_ANGLE_HIGH);
+            BankingFailsafe;
+            Exit;
+          End;
+
+          If TimeFromMark(T)>6000 Then
+          Begin
+            If Debug then
+              Writeln('DIDNT FIND BANKSCREEN');
+            Break;
+          End;
+        Until(BankScreen Or PinScreen);
+        Result:=True;
+        Exit;
+      End;
+    End;
+  End;
+  ColorToleranceSpeed(CTS);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+End;
+
+Procedure WalkToBank;
+Var
+  X,Y,T: Integer;
+Begin
+  If Debug then
+    Writeln('ENTERING WALKTOBANK PROCEDURE');
+
+  If Not Loggedin Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    If Not LoggedIn Then
+      TerminateScript;
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  If (BankTime=1) And (LowerCase(RingType)='duel') Then
+  Begin
+    If Debug then
+      Writeln('WALKING TO BANK SYMBOL');
+
+    FindSymbol(X,Y,'Bank')
+    HumanMMouse(X,Y,2,2);
+    ClickMouse2(True);
+
+    Wait(RandomRange(1000,1200));
+
+    MarkTime(T);
+    Repeat
+      Wait(110);
+
+      If FindNormalRandoms Then
+      Begin
+        If Not LoggedIn Then
+          TerminateScript;
+        MakeCompass(Direction);
+        SetAngle(SRL_ANGLE_HIGH);
+        WalkToBank;
+        Exit;
+      End;
+
+      If TimeFromMark(T)>10000 Then
+      Begin
+        If Debug then
+          Writeln('DIDNT STOP MOVING FOR LONG TIME');
+        Break;
+      End;
+    Until Not Ismoving;
+  End;
+End;
+
+Function OpenBanks: Boolean;
+Var
+  V: TVariantArray;
+  T: Integer;
+Begin
+  If Debug then
+    Writeln('ENTERING OPENBANKS');
+  Result:=False;
+  If LowerCase(RingType)='duel' Then
+  Begin
+    If Debug then
+      Writeln('OPENING DUEL BANK');
+    V:=[SRL_BANK_CW];
+    If WaitFuncEx('OpenBankChestEdge',V,100,10000) Then
+    Begin
+      If Debug then
+        Writeln('SRL OPEN CHEST IS TRUE');
+      Result:=True;
+    End;
+  End Else
+  Begin
+    If Not WaitFunc(@TzBank,100,5000) Then
+    Begin
+      If Debug then
+        Writeln('FAILED TO FIND TZHAAR BANKER, WALKING CLOSER');
+
+      HumanMMouse(257,43,4,4);
+
+      If WaitUpText('alk',900) Then
+        ClickMouse2(True) Else
+        Begin
+          ClickMouse2(False);
+          WaitOption('alk',900);
+        End;
+
+      Wait(RandomRange(600,700));
+      MarkTime(T);
+      Repeat
+        Wait(100);
+        If TimeFromMark(T)>5000 Then
+          Break;
+      Until Not IsMoving;
+
+      If Not WaitFunc(@TzBank,100,5000) Then
+      Begin
+        If Debug then
+          Writeln('FAILED BANKING AGAIN, TRYING TO TELLY BACK');
+        ToBank;
+        Result:=False;
+      End Else
+        Result:=True;
+    End Else
+      Result:=True;
+  End;
+End;
+
+Procedure WithdrawItems;
+Var
+  X,Y,T: Integer;
+Begin
+  If Debug then
+    Writeln('ENTERING WITHDRAW ITEMS');
+
+  If (CountItems('DTM',HerbDTM,[]) < 2) Then
+    If WaitFindDTMEX(HerbDTM,X,Y,MBX1,MBY1,MBX2,MBY2,50,8000) Then
+    Begin
+      If Debug then
+        Writeln('FOUND HERBS');
+
+      If InvFull Then
+        Deposit(6,8,False);
+
+      HumanMMouse(X,Y,4,4);
+      ClickMouse2(True);
+
+      WaitInvCountInc(2000);
+
+      If (CountItems('DTM',HerbDTM,[]) < 2) Then
+      Begin
+        ClickMouse2(True);
+        WaitInvCountInc(2000);
+      End;
+    End Else
+    Begin
+      Writeln('DID NOT FIND HERBS, TERMINATING SCRIPT.');
+      TerminateScript;
+    End;
+
+    If BankTime>1 Then
+    Begin
+      If FindDTM(Pouch,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+      Begin
+        If Debug then
+          Writeln('FOUND POUCH, DEPOSITING');
+        HumanMMouse(X,Y,4,4);
+        ClickMouse2(True);
+        WaitInvCountDec(2000);
+      End Else
+        If Debug Then
+          Writeln('DID NOT FIND POUCH TO DEPOSIT');
+
+      If FindDTM(Summoning,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+      Begin
+        If Debug then
+          Writeln('FOUND POTION, DEPOSITING');
+        HumanMMouse(X,Y,4,4);
+        ClickMouse2(True);
+        WaitInvCountDec(2000);
+      End Else
+        If Debug Then
+          Writeln('DID NOT FIND POTION TO DEPOSIT');
+
+      If LowerCase(RingType)='duel' Then
+        If FindDTM(Ring,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+        Begin
+          If Debug then
+            Writeln('FOUND EXTRA RING, DEPOSITING');
+          HumanMMouse(X,Y,4,4);
+          ClickMouse2(True);
+          WaitInvCountDec(2000);
+        End Else
+          If Debug Then
+            Writeln('DID NOT FIND EXTRA RING TO DEPOSIT');
+    End;
+
+    If Debug Then
+      Writeln('Summoning Timer is: ' + MsToTime(summoningtimer, Time_Formal));
+
+    If Debug Then
+      Writeln('PTS= ' +tostr(pts));
+
+    If BankTime=1 Then
+      If ((PTS<>0) And (Not UsingFamiliar)) Or StartSummon Then
+      Begin
+        If WaitFindDTMEx(Pouch,X,Y,MBX1,MBY1,MBX2,MBY2,100,8000) Then
+        Begin
+          If Debug then
+            Writeln('FOUND POUCH TO WITHDRAW');
+
+          HumanMMouse(X,Y,4,4);
+          ClickMouse2(True);
+          WaitInvCountInc(2000);
+        End Else
+          If Debug then
+            Writeln('DID NOT FIND POUCH TO WITHDRAW.');
+
+        If SummonPoints<10 Then
+          If WaitFindDTMEx(Summoning,X,Y,MBX1,MBY1,MBX2,MBY2,100,8000) Then
+          Begin
+            If Debug then
+              Writeln('FOUND POTION TO WITHDRAW');
+
+            HumanMMouse(X,Y,4,4);
+            ClickMouse2(True);
+            WaitInvCountInc(2000);
+          End Else
+            If Debug then
+              Writeln('DID NOT FIND POTION TO WITHDRAW.');
+
+          StartSummon:=False;
+      End;
+
+    If (Ring<1) And (LowerCase(RingType)='duel') Then
+      If WaitFindDTMEX(RingDTM,X,Y,MBX1,MBY1,MBX2,MBY2,100,8000) Then
+      Begin
+        If Debug then
+          Writeln('FOUND DUEL RING TO WITHDRAW');
+
+        If InvFull Then
+          Deposit(6,8,False);
+
+        HumanMMouse(X,Y,4,4);
+        ClickMouse2(True);
+        WaitInvCountInc(2000);
+      End Else
+      Begin
+        Writeln('DID NOT FIND DUEL RING, TERMINATING SCRIPT.');
+        TerminateScript;
+      End;
+
+    MarkTime(T);
+    Repeat
+      Wait(Random(400));
+      If TimeFromMark(T)>5000 Then
+      Begin
+        If Debug Then
+          Writeln('FAILED TO WITHDRAW BONES');
+        Break;
+      End;
+    Until WithdrawEx(9,0,25,['ones','Bones','bones','one','Bon','nes','Bo','bo','ne','Drag','agon','drag','gon','Frost','rost','ost','Ashes','Ash','ash','hes'])
+End;
+
+Procedure Banking;
+Var
+  X,Y,T,BT,H,M,S: Integer;
+Label
+  Retry;
+Begin
+  If Debug Then
+    Writeln('ENTERING BANKING PROCEDURE');
+  BankTime:=1;
+  Repeat
+    If Debug then
+      Writeln('BANKTIME: ' +ToStr(BankTime));
+
+    If Not Loggedin Then
+      Exit;
+
+    If FindNormalRandoms Then
+    Begin
+      If Not LoggedIn Then
+        TerminateScript;
+      MakeCompass(Direction);
+      SetAngle(SRL_ANGLE_HIGH);
+    End;
+
+    MarkTime(BT);
+    Retry:
+
+      If TimeFromMark(BT)>45000 Then
+      Begin
+        Writeln('Banking Failed');
+        TerminateScript;
+      End;
+
+      If (LowerCase(RingType)='duel') And (Not FindSymbol(X,Y,'Bank')) Then
+      Begin
+        If Debug Then
+          Writeln('NO BANK SYMBOL EXITING PROCEDURE');
+        Exit;
+      End;
+
+      If (LowerCase(RingType)='tzhaar') And (Not FindSymbol(X,Y,'Bank') And (Not FindSymbol(X,Y,'Minigame'))) Then
+      Begin
+        If Debug Then
+          Writeln('NO BANK OR MINIGAME SYMBOL EXITING PROCEDURE');
+        Exit;
+      End;
+
+      If (InvFull) And (CountItems('DTM',HerbDTM,[]) = 2) Then
+      Begin
+        If Debug Then
+          Writeln('INVENTORY FULL BREAKING LOOP');
+        If ((LowerCase(RingType)='duel') And (Not (Ring<1))) Or (LowerCase(RingType)='tzhaar') Then
+          Break;
+      End;
+
+      WalkToBank;
+
+      If Debug then
+        Writeln('OPENING BANK');
+
+      ConvertTime(TimeFromMark(SummoningTimer),H,M,S);
+      If Debug Then
+        Writeln('Summoning Timer in Minutes: '+ToStr(M));
+      If (M>NewPouch) Then
+      Begin
+        If Debug Then
+          Writeln('NOT TIME FOR NEW ONE');
+        DismissFamiliar;
+      End;
+
+      If (Not OpenBanks) And (LowerCase(RingType)='tzhaar') Then
+      Begin
+        If Debug Then
+          Writeln('FAILED TO OPEN TZHAAR BANK GOING TO RETRY');
+        GoTo Retry;
+      End;
+
+      If Debug then
+        Writeln('WAITING FOR BANK SCREEN');
+
+      MarkTime(T);
+      Repeat
+        Wait(100);
+
+        If FindNormalRandoms Then
+        Begin
+          If Not LoggedIn Then
+            TerminateScript;
+          MakeCompass(Direction);
+          SetAngle(SRL_ANGLE_HIGH);
+          Banking;
+          Exit;
+        End;
+
+        If TimeFromMark(T)>6000 Then
+        Begin
+          If Debug Then
+            Writeln('NO BANK SCREEN AFTER 6 SECONDS');
+          Break;
+        End;
+      Until(BankScreen Or PinScreen);
+
+      If (Not (BankScreen Or PinScreen)) And (LowerCase(RingType)='duel') Then
+      Begin
+        If Debug Then
+          Writeln('FAILED TO OPEN BANK, TRYING FAILSAFE METHOD');
+        BankingFailSafe;
+      End;
+
+      If Not (BankScreen Or PinScreen) Then
+      Begin
+        If Debug Then
+          Writeln('STILL NOT BANK SCREEN, GOING TO RETRY');
+        GoTo Retry;
+      End;
+
+      If PinScreen Then
+        InPin(Players[CurrentPlayer].Pin);
+
+      WithdrawItems;
+      CloseBank;
+
+      MarkTime(T);
+      Repeat
+        Wait(52);
+
+        If FindNormalRandoms Then
+        Begin
+          If Not LoggedIn Then
+            TerminateScript;
+          MakeCompass(Direction);
+          SetAngle(SRL_ANGLE_HIGH);
+        End;
+
+        If TimeFromMark(T)>5000 Then
+        Begin
+          If Debug Then
+            Writeln('INVENTORY STILL NOT FULL, WTF??');
+          Break;
+        End;
+      Until InvFull;
+
+      If Not InvFull Then
+        If BankTime=5 Then
+        Begin
+          Writeln('Failed withdrawing, terminating');
+          TerminateScript;
+        End Else
+          BankTime:=BankTime+1;
+
+
+      If (Ring<1) And (LowerCase(RingType)='duel') Then
+      Begin
+        If WaitFindDTMEx(RingDTM,X,Y,MIX1,MIY1,MIX2,MIY2,300,5000) Then
+        Begin
+          If Debug then
+            Writeln('PUTTING ON RING');
+
+          HumanMMouse(X,Y,4,4);
+          ClickMouse2(True);
+
+          WaitInvCountDec(2000);
+
+          Ring:=8;
+        End Else
+        Begin
+          Writeln('DID NOT FIND DUEL RING, TERMINATING SCRIPT.');
+          TerminateScript;
+        End;
+      End;
+
+      If Not UsingFamiliar Then
+        SummoningRenew(PTS);
+
+      If (BankTime = 1) And (PTS<>0) Then
+        StoreBOB;
+
+  Until (InvFull) And (CountItems('DTM',HerbDTM,[]) = 2);
+
+  If FindNormalRandoms Then
+  Begin
+    If Not LoggedIn Then
+      TerminateScript;
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  WaitGameTab(Tab_Inv,5000);
+
+  MarkTime(T);
+  Repeat
+    Wait(Random(500));
+    If TimeFromMark(T)>10000 Then
+    Begin
+      Writeln('DID NOT FIND TELLY TAB, TERMINATING SCRIPT.');
+      TerminateScript;
+    End;
+  Until FindObjEX(X,Y,['reak','Tele','ouse'],[13706015],18,40,MIX1,MIY1,MIX2,MIY2);
+
+  If Debug then
+    Writeln('CLICKED TAB');
+
+  HumanMMouse(X,Y,4,4);
+  ClickMouse2(True);
+
+  MarkTime(T);
+  Repeat
+    Wait(Random(500));
+
+    If FindNormalRandoms Then
+    Begin
+      If Not LoggedIn Then
+        TerminateScript;
+      MakeCompass(Direction);
+      SetAngle(SRL_ANGLE_HIGH);
+    End;
+
+    If TimeFromMark(T)>10000 Then
+    Begin
+      If Debug Then
+        Writeln('BANK SYMBOL STILL THERE WTF?');
+      Break;
+    End;
+  Until Not Findsymbol(X,Y,'Bank');
+
+  MakeCompass(Direction);
+End;
+
+Procedure Burners;
+Var
+  X,Y,H,I,CTS,T: Integer;
+  pArray: TPointArray;
+  aPArray: T2DPointArray;
+Begin
+  If Debug Then
+    Writeln('ENTERING PROCEDURE BURNERS');
+
+  If (Not(LoggedIn)) Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    If Not LoggedIn Then
+      TerminateScript;
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  If Debug then
+    Writeln('DOING BURNERS');
+
+  If Not FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
+    Exit;
+
+  If Debug Then
+    Writeln('HERB PRESENT');
+
+  MouseSpeed := RandomRange(18, 23);
+
+  Case LowerCase(AltarDirection) Of
+    'n':
+      If LowerCase(AltarPlace)='top' Then
+      Begin
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+        Begin
+          AltarX1:=115;
+          AltarY1:=50;
+          AltarX2:=270;
+          AltarY2:=160;
+
+          HumanMMouse(215,48,4,4);
+
+          If WaitUpText('alk',900) Then
+            ClickMouse2(True) Else
+            Begin
+              ClickMouse2(False);
+              WaitOption('alk',900);
+            End;
+
+          Wait(RandomRange(600,700));
+          MarkTime(T);
+          Repeat
+            Wait(100);
+            If TimeFromMark(T)>5000 Then
+              Break;
+          Until Not IsMoving;
+        End Else
+        Begin
+          AltarX1:=404;
+          AltarY1:=85;
+          AltarX2:=499;
+          AltarY2:=194;
+        End;
+      End Else
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+        Begin
+          AltarX1:=150;
+          AltarY1:=72;
+          AltarX2:=258;
+          AltarY2:=129;
+        End Else
+        Begin
+          AltarX1:=178;
+          AltarY1:=MSY1;
+          AltarX2:=300;
+          AltarY2:=42;
+        End;
+
+    's':
+      If LowerCase(AltarPlace)='top' Then
+      Begin
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+        Begin
+          AltarX1:=115;
+          AltarY1:=50;
+          AltarX2:=270;
+          AltarY2:=160;
+
+          HumanMMouse(215,48,4,4);
+
+          If WaitUpText('alk',900) Then
+            ClickMouse2(True) Else
+            Begin
+              ClickMouse2(False);
+              WaitOption('alk',900);
+            End;
+
+          Wait(RandomRange(600,700));
+          MarkTime(T);
+          Repeat
+            Wait(100);
+            If TimeFromMark(T)>5000 Then
+              Break;
+          Until Not IsMoving;
+        End Else
+        Begin
+          AltarX1:=400;
+          AltarY1:=80;
+          AltarX2:=504;
+          AltarY2:=200;
+        End;
+      End Else
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+        Begin
+          AltarX1:=150;
+          AltarY1:=72;
+          AltarX2:=258;
+          AltarY2:=129;
+        End Else
+        Begin
+          AltarX1:=178;
+          AltarY1:=MSY1;
+          AltarX2:=300;
+          AltarY2:=42;
+        End;
+    'w':
+      If LowerCase(AltarPlace)='top' Then
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+        Begin
+          AltarX1:=MSX1;
+          AltarY1:=36;
+          AltarX2:=69;
+          AltarY2:=155;
+        End Else
+        Begin
+          HumanMMouse(267,287,4,4);
+
+          If WaitUpText('alk',900) Then
+            ClickMouse2(True) Else
+            Begin
+              ClickMouse2(False);
+              WaitOption('alk',900);
+            End;
+
+          Wait(RandomRange(600,700));
+          MarkTime(T);
+          Repeat
+            Wait(100);
+            If TimeFromMark(T)>5000 Then
+              Break;
+          Until Not IsMoving;
+
+          AltarX1:=150;
+          AltarY1:=188;
+          AltarX2:=284;
+          AltarY2:=294;
+        End;
+    'e':
+      If LowerCase(AltarPlace)='top' Then
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+        Begin
+          AltarX1:=425;
+          AltarY1:=20;
+          AltarX2:=515;
+          AltarY2:=150;
+        End Else
+        Begin
+          HumanMMouse(258,311,4,4);
+
+          If WaitUpText('alk',900) Then
+            ClickMouse2(True) Else
+            Begin
+              ClickMouse2(False);
+              WaitOption('alk',900);
+            End;
+
+          Wait(RandomRange(600,700));
+          MarkTime(T);
+          Repeat
+            Wait(100);
+            If TimeFromMark(T)>5000 Then
+              Break;
+          Until Not IsMoving;
+
+          AltarX1:=260;
+          AltarY1:=153;
+          AltarX2:=338;
+          AltarY2:=264;
+        End;
+  End;
+
+  If Debug Then
+    SMART_DrawBoxEx(True,IntToBox(AltarX1,AltarY1,AltarX2,AltarY2),clGreen);
+
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+
+  SetColorSpeed2Modifiers(BurnerHue,BurnerSat);
+  FindColorsSpiralTolerance(MSCX,MSCY,pArray,BurnerColor,AltarX1,AltarY1,AltarX2,AltarY2,BurnerTolerance);
+
+  aPArray := SplitTPAEx(pArray, 15, 15);
+
+  SortATPASize(aPArray,False);
+
+  If Debug Then
+    DebugATPABounds(aPArray);
+
+  If (Length(aPArray) = 0) Then
+  Begin
+    ColorToleranceSpeed(CTS);
+    SetColorSpeed2Modifiers(0.2, 0.2);
+    EXIT;
+  End;
+
+  H := High(aPArray);
+
+  For I := 0 To H Do
+  Begin
+    MiddleTPAEx(aPArray[I], X, Y);
+
+    If Debug Then
+      Writeln(tostr(Length(aPArray[I])));
+
+    If (Length(aPArray[I]) < BurnerLength) Or (Length(aPArray[I]) > MaxLength) then
+      Continue;
+
+    If Debug Then
+      Writeln(tostr(Length(aPArray[I])));
+
+    HumanMMouse(X,Y,2,2);
+
+    If (WaitUpTextMulti(['ight','cense','Ligh'],RandomRange(300,400))) Then
+    Begin
+      If Debug then
+        Writeln('FOUND BURNER UPTEXT');
+
+      ClickMouse2(False);
+
+      If WaitOption('ight',RandomRange(400,500)) Then
+      Begin
+        If Debug then
+          Writeln('FOUND OPTION TO LIGHT');
+
+        ColorToleranceSpeed(CTS);
+        SetColorSpeed2Modifiers(0.2, 0.2);
+
+        Wait(RandomRange(600,800));
+
+        MarkTime(T);
+        REPEAT
+          WAIT(100);
+
+          If TimeFromMark(T)>6000 Then
+            Break;
+
+          If (CountItems('DTM',HerbDTM,[])=1) And ((LowerCase(AltarDirection)='n') Or (LowerCase(AltarDirection)='s')) And (LowerCase(AltarPlace)='side') Then
+          Begin
+            KeyDown(40);
+            Sleep(200 + Random(50));
+            KeyUp(40);
+            Wait(RandomRange(500,600));
+          End;
+
+          If Not FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
+            Break;
+        UNTIL NOT ISMOVING;
+        Exit;
+      End;
+    End;
+  End;
+
+  ColorToleranceSpeed(CTS);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+End;
+
+Function OpenDoor: Boolean;
+Var
+  X,Y,H,I,CTS,T: Integer;
+  pArray: TPointArray;
+  aPArray: T2DPointArray;
+Begin
+  Result:=False;
+
+  If (Not(LoggedIn)) Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  If Debug then
+    Writeln('OPENING DOOR');
+
+  If LowerCase(AltarDirection)='s' Then
+  Begin
+    KeyDown(40);
+    Sleep(300 + Random(50));
+    KeyUp(40);
+    Wait(RandomRange(500,600));
+    MakeCompass(Direction);
+  End;
+
+  If Debug Then
+    Writeln('Black count: '+ToStr(CountColor(0,407,137,472,213)));
+
+  While CountColor(0,407,137,472,213)> 2000 Do
+    Wait(RandomRange(300,400));
+
+  MouseSpeed := RandomRange(18, 23);
+
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+
+  SetColorSpeed2Modifiers(DoorHue, DoorSat);
+  FindColorsSpiralTolerance(MSCX, MSCY, pArray, DoorColor, DoorX1, DoorY1, DoorX2, DoorY2, DoorTolerance);
+
+  aPArray := SplitTPAEx(pArray, 11, 11);
+
+  SortATPASize(aPArray,True);
+
+  If Debug Then
+    DebugATPABounds(aPArray);
+
+  If (Length(aPArray) = 0) Then
+  Begin
+    ColorToleranceSpeed(CTS);
+    SetColorSpeed2Modifiers(0.2, 0.2);
+    Exit;
+  End;
+
+  H := High(aPArray);
+
+  For I := 0 To H Do
+  Begin
+    MiddleTPAEx(aPArray[I], X, Y);
+
+    If Debug Then
+      Writeln(tostr(Length(aPArray[I])));
+
+    If Length(aPArray[I]) < Lengths then
+      Continue;
+
+    HumanMMouse(X,Y,4,4);
+
+    If (WaitUpTextMulti(['Open','pen','oor','Portal','port','tal'],RandomRange(300,400))) Then
+    Begin
+      If Debug then
+        Writeln('FOUND DOOR UPTEXT');
+
+      ClickMouse2(False);
+
+      If WaitOption('Open',RandomRange(400,500)) Then
+      Begin
+        If Debug then
+          Writeln('FOUND OPEN OPTION');
+
+        ColorToleranceSpeed(CTS);
+        SetColorSpeed2Modifiers(0.2, 0.2);
+
+        Result:=True;
+
+        If LowerCase(AltarDirection)='s' Then
+          SetAngle(SRL_ANGLE_HIGH) Else
+          Wait(RandomRange(600,800));
+
+        MarkTime(T);
+        Repeat
+          Wait(100);
+
+          If TimeFromMark(T)>5000 Then
+            Break;
+        Until Not IsMoving;
+        Exit;
+      End;
+    End;
+  End;
+  ColorToleranceSpeed(CTS);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+End;
+
+Function Altar: Boolean;
+Var
+  X,Y,H,I,CTS,T: Integer;
+  pArray: TPointArray;
+  aPArray: T2DPointArray;
+Begin
+  Result:=False;
+
+  If (Not(LoggedIn)) Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+  If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
+    Exit;
+
+  SetAngle(SRL_ANGLE_HIGH);
+
+  If Debug then
+    Writeln('DOING ALTAR PART');
+
+  MarkTime(T);
+  Repeat
+    InvMouse(RandomRange(10,18),3);
+    If TimeFromMark(T)>10000 Then
+      Exit;
+  Until WaitUpTextMulti(['ury','Bury','ones','bones'],RandomRange(1800,2000));
+
+  ClickMouse2(False);
+
+  If Debug then
+    Writeln('FOUND BONES');
+
+  If Not WaitOptionMulti(['Use','Use ','se '],RandomRange(800,900)) Then
+    Exit;
+
+  MouseSpeed := RandomRange(18, 23);
+
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+
+  SetColorSpeed2Modifiers(0.12, 1.35);
+  FindColorsSpiralTolerance(MSCX, MSCY, pArray, 9291216, msx1, msy1, msx2, msy2, 25);
+
+  If PTS=3 Then
+    aPArray := TPAtoATPAEx(pArray, 40, 40) Else
+    aPArray := SplitTPAEx(pArray, 10, 10);
+
+  SortATPASize(aPArray,True);
+
+  If Debug Then
+    DebugATPABounds(aPArray);
+
+  If (Length(aPArray) = 0) Then
+  Begin
+    ColorToleranceSpeed(CTS);
+    SetColorSpeed2Modifiers(0.2, 0.2);
+    Exit;
+  End;
+
+  H := High(aPArray);
+
+  For I := 0 To H Do
+  Begin
+    MiddleTPAEx(aPArray[I], X, Y);
+
+    If Debug Then
+      Writeln(tostr(Length(aPArray[I])));
+
+    If Length(aPArray[I]) < 100 then
+      Continue;
+
+    HumanMMouse(X,Y,5,5);
+
+    If (WaitUpTextMulti(['ltar','Alta','Altar'],RandomRange(300,400))) Then
+    Begin
+      If Debug then
+        Writeln('FOUND ALTAR UPTEXT');
+
+      ClickMouse2(False);
+
+      If Not WaitOptionMulti(['Alta','Altar'],RandomRange(800,900)) Then
+          Altar;
+
+      If Debug then
+        Writeln('FOUND USE OPTION');
+
+      ColorToleranceSpeed(CTS);
+      SetColorSpeed2Modifiers(0.2, 0.2);
+
+      MouseBox(222,408,295,447,Mouse_Move);
+
+      If Debug then
+        Writeln('CLICKING OFFER ALL BOX');
+
+      If WaitUpTextMulti(['Offer','ffer','All ','Off','Offe'],3000) Then
+      Begin
+        ClickMouse2(True);
+
+        If Debug then
+        Writeln('WAITING FOR FIRST BONES TO GO');
+
+        MarkTime(T);
+        Repeat
+          Wait(100);
+          If TimeFromMark(T)>4000 Then
+            Altar;
+        Until InvCount < 26;
+
+        Result:= True;
+        Exit;
+      End Else
+        If FindBlackChatMessage('reach') Then
+        Begin
+          Writeln('COULDNT REACH ALTAR');
+          Exit;
+        End Else Altar;
+    End;
+  End;
+  ColorToleranceSpeed(CTS);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+End;
+
+Procedure GetBOB;
+Begin
+  If Not LoggedIn Then
+    Exit;
+
+  If FindNormalRandoms Then
+  Begin
+    MakeCompass(Direction);
+    SetAngle(SRL_ANGLE_HIGH);
+  End;
+
+ If Debug then
+  Writeln('GETTING FROM BOB');
+
+  If Not UsingFamiliar Then
+  Begin
+    If Debug Then
+      Writeln('NO BOB');
+    PTS:=0;
+    Exit;
+  End;
+
+  MouseBox(697,134,712,151,Mouse_Left);
+
+  Wait(RandomRange(800,900));
+End;
+
+Procedure Setup;
+Var
+  X,Y: Integer;
+Begin
+  ClearDebug;
+
+  Smart_Server := 10;
+  Smart_Members := True;
+  Smart_Signed := True;
+  Smart_SuperDetail := False;
+
+  SetupSRL;
+
+  DeclarePlayers;
+  LoginPlayer;
+
+  UseFindMod:=False;
+
+  ToggleXPBar(True);
+  StartingExperience := GetXPBarTotal;
+
+  SmartSetRefresh(70);
+
+  AddOnTerminate('F33DTM');
+  SetDTM;
+
+  BankTime:=1;
+  Ring:=8;
+
+  Writeln('Make sure you have all your settings in correct!');
+  Writeln('Turn on Debug mode (line 64) if you are having problems and tell me what it says');
+
+  WaitGameTab(Tab_Equip,5000);
+
+  If LowerCase(RingType)='duel' Then
+  Begin
+    If WaitFindDTMEx(RingDTM,X,Y,MIX1,MIY1,MIX2,MIY2,50,2000) Then
+      Ring:=GetRingCount Else
+      Ring:=0;
+  End Else
+    If Not WaitFindDTMEx(TRingDTM,X,Y,MIX1,MIY1,MIX2,MIY2,50,2000) Then
+    Begin
+      Writeln('Please equip Tzhaar ring before starting');
+      TerminateScript;
+    End;
+
+  WaitGameTab(Tab_Inv,5000);
+
+  Case LowerCase(AltarDirection) Of
+    'w':
+      Begin DoorX1:=15; DoorY1:=79; DoorX2:=192; DoorY2:=302; Direction:='N'; MakeCompass(Direction);
+        If LowerCase(AltarPlace)='side' Then
+        Begin
+          AltarX1:=MSX1;
+          AltarY1:=132;
+          AltarX2:=200;
+          AltarY2:=263;
+        End;
+      End;
+
+    'n': Begin DoorX1:=193; DoorY1:=34; DoorX2:=355; DoorY2:=127; Direction:='N'; MakeCompass(Direction); End;
+
+    'e':
+      Begin DoorX1:=400; DoorY1:=158; DoorX2:=509; DoorY2:=296; Direction:='N'; AltarX1:=258; AltarY1:=132; AltarX2:=MSX2; AltarY2:=MSY2; MakeCompass(Direction);
+        If LowerCase(AltarPlace)='side' Then
+        Begin
+          AltarX1:=308;
+          AltarY1:=73;
+          AltarX2:=MSX2;
+          AltarY2:=263;
+        End;
+      End;
+
+    's': Begin DoorX1:=185; DoorY1:=32; DoorX2:=334; DoorY2:=85; Direction:='S'; AltarX1:=MSX1; AltarY1:=MSY1; AltarX2:=MSX2; AltarY2:=MSY2 End;
+  End;
+
+  Case LowerCase(HouseDesign) Of
+    'zenev' : Begin DoorHue:=0.21; DoorSat:=0.11; DoorColor:=3027766; DoorTolerance:=11; Lengths:=100; End;
+    'basicwood' : Begin DoorHue:=1.39; DoorSat:=0.21; DoorColor:=2566185; DoorTolerance:=11; Lengths:=40; End;
+    'basicstone' : Begin DoorHue:=0.14; DoorSat:=2.16; DoorColor:=1589079; DoorTolerance:=10; Lengths:=200; End;
+    'whitewash' : Begin DoorHue:=0.06; DoorSat:=0.37; DoorColor:=4610146; DoorTolerance:=11; Lengths:=200; End;
+    'tropical' : Begin DoorHue:=0.01; DoorSat:=0.06; DoorColor:=3298673; DoorTolerance:=14; Lengths:=200; End;
+    'fancy' : Begin DoorHue:=0.09; DoorSat:=0.34; DoorColor:=3885395; DoorTolerance:=13; Lengths:=200; End;
+  End;
+
+  Case LowerCase(BurnerType) Of
+    'incense' : Begin BurnerHue:=0.68; BurnerSat:=2.08; BurnerColor:=7964580; BurnerTolerance:=9; MaxLength:=110; BurnerLength:=15; End;
+    'mahogany' : Begin BurnerHue:=0.16; BurnerSat:=0.06; BurnerColor:=6776941; BurnerTolerance:=19; MaxLength:=50; BurnerLength:=15; End;
+    'marble' : Begin BurnerHue:=0.06; BurnerSat:=1.38; BurnerColor:=2788535; BurnerTolerance:=21; MaxLength:=100; BurnerLength:=10; End;
+  End;
+
+  Case PTS Of
+    0: Begin Pouch := DTMFromString('mGQAAAHicY2RgYLjJyMCwF0hnB+gzgAAjiAAAKdkChA=='); Bones:=25; End;
+    1: Begin Pouch := DTMFromString('mQwAAAHicY2ZgYDAGYlsozgLiFCgdGprEcHjfCoZpxXoMIkA+DDMiYSAAAP2yBpQ='); NewPouch:=30; Bones:=37; End;  //terrorbird   1920000    30
+    2: Begin Pouch := DTMFromString('mbQAAAHicY2VgYDAFYisg1gNiGyC2BuL3QPwEiD8A8RcgfgfEna4iDFfO7GDQ15BnaHcRAWN+oDg6ZsSCwQAAEz8LfQ=='); NewPouch:=38; Bones:=43; End;          //war tort  2400000  38
+    3: Begin Pouch := DTMFromString('mbQAAAHicY2VgYMhlguAkIC4D4hwgfgQUfwXEL4D4NRDfAuJ9+5YwWJsbM9RV5zJsXjeL4djB1QwiQHF0zIgFgwEACPUPaA=='); NewPouch:=50; Bones:=55; End; //packyak     3000000   50
+  End;
+
+  SetAngle(SRL_ANGLE_HIGH);
+
+  If UsingFamiliar Then
+    DismissFamiliar;
+
+  If PTS <> 0 Then
+    StartSummon:=True;
+
+  SecondSummon:=False;
+
+  StartTime:= GetSystemTime;
+End;
+
+Procedure Mainloop;
+Var
+  x,y,T:integer;
+Begin
+  WaitGameTab(Tab_Inv,5000);
+
+  Banking;
+
+  If Debug then
+    Writeln('WAITING FOR DOOR');
+
+  If WaitFunc(@OpenDoor,100,RandomRange(14000,15000)) Then
+  Begin
+    MarkTime(T);
+    Repeat
+      Burners;
+      If TimeFromMark(T)>20000 Then
+        Break;
+
+      If FindBlackChatMessage('reach') Then
+      Begin
+        Writeln('COULDNT REACH BURNERS');
+        Break;
+      End;
+    Until Not FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2);
+
+    If WaitFunc(@Altar,100,RandomRange(14000,15000)) Then
+    Begin
+      If Debug then
+        Writeln('WAITING FOR INVCOUNT4');
+
+      MarkTime(T);
+      Repeat
+        Wait(100);
+
+        If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
+          Break;
+
+        If FindNormalRandoms Then
+        Begin
+          MakeCompass(Direction);
+          SetAngle(SRL_ANGLE_HIGH);
+          Altar;
+          T:=0;
+          MarkTime(T);
+        End;
+
+        If TimeFromMark(T)> 50000 Then
+          Break;
+      Until InvCount < RandomRange(4,6);
+
+      If (Not (PTS=0)) And (Not(FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2))) Then
+        GetBOB;
+
+      If PTS=3 Then
+      Begin
+        MarkTime(T);
+        Repeat
+          Wait(100);
+
+          If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
+            Break;
+
+          If FindNormalRandoms Then
+          Begin
+            MakeCompass(Direction);
+            SetAngle(SRL_ANGLE_HIGH);
+            Altar;
+            T:=0;
+            MarkTime(T);
+          End;
+
+          If TimeFromMark(T)> 50000 Then
+            Break;
+        Until InvCount < RandomRange(4,6);
+
+        GetBOB;
+      End;
+
+      If Debug then
+        Writeln('WAITING FOR NO MORE BONES');
+
+      MarkTime(T);
+      Repeat
+        Wait(100);
+
+        If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
+          Break;
+
+        If FindNormalRandoms Then
+        Begin
+          MakeCompass(Direction);
+          SetAngle(SRL_ANGLE_HIGH);
+          Altar;
+          T:=0;
+          MarkTime(T);
+        End;
+
+        If TimeFromMark(T)>45000 Then
+          Break;
+      Until InvCount<=2;
+    End;
+  End;
+
+  ProgressReport;
+
+  ToBank;
+End;
+
+Begin
+  Setup;
+  Repeat
+   Mainloop;
+  Until AllPlayersInactive;
+  F33DTM;
+End.
