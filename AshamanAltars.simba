@@ -26,13 +26,15 @@ AshamanAltars V1.10
 Const
   SRLStats_Username = '';         // Leave blank if you don't have a stats account
   SRLStats_Password = '';
-  RingType          = 'duel';         // Which type of ring are you using? (Duel,TzHaar)
+  RingType          = 'TZHAAR';         // Which type of ring are you using? (Duel,TzHaar)
   AltarDirection    = 'w';         // Cardinal direction from entrance to where your altar room is (N,E,S,W)
   HouseDesign       = 'basicstone';         // House style (Zenev,BasicWood,BasicStone,Tropical)
   BurnerType        = 'marble';         // Which type of burner do you have? (Incense(means oak),Mahogany,Marble)
   AltarPlace        = 'side';         // From the doorway is your altar at the top of the room or side? Ex If I walk
                                   // into your room would I have to go to the "top" of the room, or a "side" to get to it?
                                   // input (Top, or Side)
+
+  UseAutoChecker    = True;       // Auto checks for most updated version and dowloads it.
 
 Procedure DeclarePlayers;
 Begin
@@ -44,7 +46,7 @@ Begin
     Name        := '';
     Pass        := '';
     Pin         := '';
-    PTS         := 1;         //Pouch to summon, 1 for terrorbird, 2 for wartort, 3 for yak, 0 for nothing
+    PTS         := 0;         //Pouch to summon, 1 for terrorbird, 2 for wartort, 3 for yak, 0 for nothing
     BoxRewards  := ['Coins', 'oins'];
     Active      := True;
   End;
@@ -69,7 +71,7 @@ Var
  DoorColor,DoorTolerance,SummoningTimer,Summoning,Empty,BurnerColor,BurnerTolerance,TRingDTM: Integer;
  Pouch,AltarX1,AltarY1,AltarX2,AltarY2, NewPouch,Sec,Bones,Lengths,MaxLength,BurnerLength: Integer;
  LProc,Direction: String;
- StartSummon,SecondSummon: Boolean;
+ StartSummon: Boolean;
 
 
 Procedure SetDTM;
@@ -122,7 +124,51 @@ Begin
   Writeln('Bones/H: ' + IntToStr(BonesPH));
   Writeln('===============================');
 
+  Stats_Commit;
 End;
+
+ {*******************************************************************************
+
+By: Shuttleu , edited
+
+*******************************************************************************}
+
+
+//Please note that almost all of this code was written by Harry, i just edited it a bit
+procedure AutoUpdateMe;
+var Neifile:integer;
+    OnlineVersion, NewScript, NeiFeilNennen:string;
+begin
+  if UseAutoChecker then
+  begin
+    writeln('Checking for script updates...');
+    OnlineVersion := GetPage('http://ashamanaltars.googlecode.com/git/Version.txt');
+    writeln(OnlineVersion);
+    writeln(ScriptVersion)
+    if (trim(OnlineVersion) > ScriptVersion) then
+    begin
+      writeLn('Newer script version online!');
+      writeLn('Autoupdating to newer version.');
+      NewScript := GetPage('http://ashamanaltars.googlecode.com/git/AshamanAltars.simba');
+
+      NeiFeilNennen := ScriptPath+ 'ScriptName V'+OnlineVersion+' by User.simba';
+      Neifile := Rewritefile(NeiFeilNennen, true);
+      try
+        WriteFileString(Neifile, NewScript);
+      except
+        begin
+          writeLn('Fatal error writing to '+NeiFeilNennen+'!!');
+          terminatescript;
+        end;
+      end;
+      CloseFile(Neifile);
+      writeLn('New script downloaded to '+NeiFeilNennen+'!! Please use this one!!');
+      TerminateScript;
+    end else
+      writeLn('You have the latest version of the script!');
+  end else
+    WriteLn('!!!!! Not checking for latest version, you may be outdated!');
+end;
 
  {*******************************************************************************
 
@@ -135,6 +181,7 @@ Var
   T: Integer;
 begin
   Result := False;
+  GameTab(Tab);
   If Debug Then
     Writeln('WAITING ON TAB '+ToStr(Tab));
   T := GetSystemTime + TimeToWait;
@@ -146,7 +193,6 @@ begin
       Exit;
     end;
     Wait(20 + Random(10));
-    GameTab(Tab);
   end;
 end;
 
@@ -370,7 +416,8 @@ Begin
           Writeln('DIDNT FIND NPC CHAT, EXITING');
         Exit;
       End;
-    Until FindNPCChatText('Yes',ClickLeft);
+    Until FindNPCChatText('Yes',Nothing);
+    TypeSendEx('1',False);
     While UsingFamiliar Do
       Wait(100);
   End;
@@ -525,8 +572,6 @@ Begin
 
   MouseBox(697,134,712,151,Mouse_Right);
 
-  Wait(RandomRange(300,400));
-
   If WaitOptionMulti(['act','Inte','Interact','eract'],1500) Then
   Begin
     If Debug Then
@@ -587,7 +632,7 @@ Begin
       If Debug then
         Writeln('FOUND OPTION DEPOSIT ALL');
 
-      Wait(RandomRange(400,500));
+      WaitInvCountDec(4000);
       Result:=True;
       BankTime:=2;
     End;
@@ -598,17 +643,6 @@ Begin
 
   If Debug then
     Writeln('TRYING TO CLOSE WINDOW');
-
-  MarkTime(T);
-  Repeat
-    Wait(100);
-    If TimeFromMark(T)>4000 Then
-    Begin
-      If Debug Then
-        Writeln('INVENTORY COUNT DIDNT GO DOWN');
-      Break;
-    End;
-  Until InvCount<24;
 
   If WaitUpTextMulti(['Close','lose'],2000) Then
     ClickMouse2(True);
@@ -737,9 +771,9 @@ begin
   if WearingItem(11) then
   begin
     MouseEquippedItem('ring', 3);
-    Wait(RandomRange(175, 350));
+    Wait(RandomRange(175, 250));
     S := GetUpText;
-    Wait(RandomRange(175, 350));
+    Wait(RandomRange(175, 250));
     S2 := Between('(', ')', S);
     if not (S2 = '') then
     begin
@@ -1135,7 +1169,7 @@ Begin
           Writeln('DID NOT FIND POTION TO DEPOSIT');
 
       If LowerCase(RingType)='duel' Then
-        If FindDTM(Ring,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+        If FindDTM(RingDTM,X,Y,MIX1,MIY1,MIX2,MIY2) Then
         Begin
           If Debug then
             Writeln('FOUND EXTRA RING, DEPOSITING');
@@ -1146,9 +1180,6 @@ Begin
           If Debug Then
             Writeln('DID NOT FIND EXTRA RING TO DEPOSIT');
     End;
-
-    If Debug Then
-      Writeln('Summoning Timer is: ' + MsToTime(summoningtimer, Time_Formal));
 
     If Debug Then
       Writeln('PTS= ' +tostr(pts));
@@ -1277,12 +1308,13 @@ Begin
       ConvertTime(TimeFromMark(SummoningTimer),H,M,S);
       If Debug Then
         Writeln('Summoning Timer in Minutes: '+ToStr(M));
-      If (M>NewPouch) Then
-      Begin
-        If Debug Then
-          Writeln('NOT TIME FOR NEW ONE');
-        DismissFamiliar;
-      End;
+      If (PTS<>0) Then
+        If (M>NewPouch) And (Not StartSummon) And (UsingFamiliar) Then
+        Begin
+          If Debug Then
+            Writeln('NOT TIME FOR NEW ONE');
+          DismissFamiliar;
+        End;
 
       If (Not OpenBanks) And (LowerCase(RingType)='tzhaar') Then
       Begin
@@ -1385,8 +1417,9 @@ Begin
         End;
       End;
 
-      If Not UsingFamiliar Then
-        SummoningRenew(PTS);
+      If PTS <> 0 Then
+        If Not UsingFamiliar Then
+          SummoningRenew(PTS);
 
       If (BankTime = 1) And (PTS<>0) Then
         StoreBOB;
@@ -1690,26 +1723,16 @@ Begin
         ColorToleranceSpeed(CTS);
         SetColorSpeed2Modifiers(0.2, 0.2);
 
-        Wait(RandomRange(600,800));
+        WaitInvCountDec(4000);
 
-        MarkTime(T);
-        REPEAT
-          WAIT(100);
+        If (CountItems('DTM',HerbDTM,[])=1) And ((LowerCase(AltarDirection)='n') Or (LowerCase(AltarDirection)='s')) And (LowerCase(AltarPlace)='side') Then
+        Begin
+          KeyDown(40);
+          Sleep(200 + Random(50));
+          KeyUp(40);
+          Wait(RandomRange(500,600));
+        End;
 
-          If TimeFromMark(T)>6000 Then
-            Break;
-
-          If (CountItems('DTM',HerbDTM,[])=1) And ((LowerCase(AltarDirection)='n') Or (LowerCase(AltarDirection)='s')) And (LowerCase(AltarPlace)='side') Then
-          Begin
-            KeyDown(40);
-            Sleep(200 + Random(50));
-            KeyUp(40);
-            Wait(RandomRange(500,600));
-          End;
-
-          If Not FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
-            Break;
-        UNTIL NOT ISMOVING;
         Exit;
       End;
     End;
@@ -1752,7 +1775,7 @@ Begin
     Writeln('Black count: '+ToStr(CountColor(0,407,137,472,213)));
 
   While CountColor(0,407,137,472,213)> 2000 Do
-    Wait(RandomRange(300,400));
+    Wait(RandomRange(200,300));
 
   MouseSpeed := RandomRange(18, 23);
 
@@ -1839,6 +1862,8 @@ Begin
 
   If FindNormalRandoms Then
   Begin
+    If Not LoggedIn Then
+      TerminateScript;
     MakeCompass(Direction);
     SetAngle(SRL_ANGLE_HIGH);
   End;
@@ -1846,7 +1871,8 @@ Begin
   If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
     Exit;
 
-  SetAngle(SRL_ANGLE_HIGH);
+  If ((LowerCase(AltarDirection)='n') Or (LowerCase(AltarDirection)='s')) And (LowerCase(AltarPlace)='side') Then
+    SetAngle(SRL_ANGLE_HIGH);
 
   If Debug then
     Writeln('DOING ALTAR PART');
@@ -1932,12 +1958,9 @@ Begin
         If Debug then
         Writeln('WAITING FOR FIRST BONES TO GO');
 
-        MarkTime(T);
-        Repeat
-          Wait(100);
-          If TimeFromMark(T)>4000 Then
-            Altar;
-        Until InvCount < 26;
+
+        If Not WaitInvCountDec(4000) Then
+          Altar;
 
         Result:= True;
         Exit;
@@ -1985,6 +2008,7 @@ Var
   X,Y: Integer;
 Begin
   ClearDebug;
+  AutoUpdateMe;
 
   Smart_Server := 10;
   Smart_Members := True;
@@ -1992,6 +2016,12 @@ Begin
   Smart_SuperDetail := False;
 
   SetupSRL;
+
+  If (SRLStats_Username = '') Then
+    SetupSRLStats(1105, 'Anonymous', 'anon1337')
+  Else
+    SetupSRLStats(1105, SRLStats_Username, SRLStats_Password);
+
 
   DeclarePlayers;
   LoginPlayer;
@@ -2086,14 +2116,12 @@ Begin
   If PTS <> 0 Then
     StartSummon:=True;
 
-  SecondSummon:=False;
-
   StartTime:= GetSystemTime;
 End;
 
 Procedure Mainloop;
 Var
-  x,y,T:integer;
+  X,Y,T:integer;
 Begin
   WaitGameTab(Tab_Inv,5000);
 
@@ -2107,13 +2135,19 @@ Begin
     MarkTime(T);
     Repeat
       Burners;
+
       If TimeFromMark(T)>20000 Then
-        Break;
+      Begin
+        Writeln('TOOK TOO LONG TO LIGHT BURNERS');
+        ToBank;
+        Exit;
+      End;
 
       If FindBlackChatMessage('reach') Then
       Begin
         Writeln('COULDNT REACH BURNERS');
-        Break;
+        ToBank;
+        Exit;
       End;
     Until Not FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2);
 
@@ -2122,50 +2156,38 @@ Begin
       If Debug then
         Writeln('WAITING FOR INVCOUNT4');
 
-      MarkTime(T);
-      Repeat
-        Wait(100);
-
-        If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
-          Break;
-
+      While WaitInvCountDec(5000) Do
+      Begin
         If FindNormalRandoms Then
         Begin
           MakeCompass(Direction);
           SetAngle(SRL_ANGLE_HIGH);
           Altar;
-          T:=0;
           MarkTime(T);
         End;
 
-        If TimeFromMark(T)> 50000 Then
+        If InvCount < RandomRange(4,7) Then
           Break;
-      Until InvCount < RandomRange(4,6);
+      End;
 
-      If (Not (PTS=0)) And (Not(FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2))) Then
+      If (Not (PTS=0)) Then
         GetBOB;
 
       If PTS=3 Then
       Begin
-        MarkTime(T);
-        Repeat
-          Wait(100);
-
-          If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
-            Break;
-
+        While WaitInvCountDec(5000) Do
+        Begin
           If FindNormalRandoms Then
           Begin
             MakeCompass(Direction);
             SetAngle(SRL_ANGLE_HIGH);
             Altar;
-            T:=0;
             MarkTime(T);
           End;
 
-          If TimeFromMark(T)> 50000 Then
+          If InvCount < RandomRange(4,6) Then
             Break;
-        Until InvCount < RandomRange(4,6);
+        End;
 
         GetBOB;
       End;
@@ -2173,25 +2195,19 @@ Begin
       If Debug then
         Writeln('WAITING FOR NO MORE BONES');
 
-      MarkTime(T);
-      Repeat
-        Wait(100);
-
-        If FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
-          Break;
-
+      While WaitInvCountDec(5000) Do
+      Begin
         If FindNormalRandoms Then
         Begin
           MakeCompass(Direction);
           SetAngle(SRL_ANGLE_HIGH);
           Altar;
-          T:=0;
           MarkTime(T);
         End;
 
-        If TimeFromMark(T)>45000 Then
+        If InvCount <= 2 Then
           Break;
-      Until InvCount<=2;
+      End;
     End;
   End;
 
