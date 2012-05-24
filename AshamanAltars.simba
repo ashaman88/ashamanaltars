@@ -8,7 +8,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.10
+AshamanAltars V1.11
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory
 -Make sure the bones you want to use are in the top right slot of your bank
@@ -26,10 +26,10 @@ AshamanAltars V1.10
 Const
   SRLStats_Username = '';         // Leave blank if you don't have a stats account
   SRLStats_Password = '';
-  RingType          = 'TZHAAR';         // Which type of ring are you using? (Duel,TzHaar)
+  RingType          = 'tzhaar';         // Which type of ring are you using? (Duel,TzHaar)
   AltarDirection    = 'w';         // Cardinal direction from entrance to where your altar room is (N,E,S,W)
   HouseDesign       = 'basicstone';         // House style (Zenev,BasicWood,BasicStone,Tropical)
-  BurnerType        = 'marble';         // Which type of burner do you have? (Incense(means oak),Mahogany,Marble)
+  BurnerType        = 'marble';         // Which type of burner do you have? (Oak,Mahogany,Marble)
   AltarPlace        = 'side';         // From the doorway is your altar at the top of the room or side? Ex If I walk
                                   // into your room would I have to go to the "top" of the room, or a "side" to get to it?
                                   // input (Top, or Side)
@@ -62,16 +62,17 @@ End;
 
 
 Const
-  ScriptVersion = '1.10' ;          //No touchy
-  Debug = true;
+  ScriptVersion = '1.11' ;          //No touchy
+  Debug = False;
 
 Var
  BankTime,Ring,HerbDTM,RingDTM,TabDTM,BoneCount,XP,StartTime,StartingExperience,BonesPH,XPH,DoorX1,DoorY1,DoorX2,DoorY2: Integer;
  DoorHue,DoorSat,BurnerHue,BurnerSat: Extended;
  DoorColor,DoorTolerance,SummoningTimer,Summoning,Empty,BurnerColor,BurnerTolerance,TRingDTM: Integer;
- Pouch,AltarX1,AltarY1,AltarX2,AltarY2, NewPouch,Sec,Bones,Lengths,MaxLength,BurnerLength: Integer;
+ Pouch,AltarX1,AltarY1,AltarX2,AltarY2, NewPouch,Bones,Lengths,MaxLength,BurnerLength: Integer;
+ BounceX,BounceY: Integer;
  LProc,Direction: String;
- StartSummon: Boolean;
+ StartSummon,Walk: Boolean;
 
 
 Procedure SetDTM;
@@ -110,10 +111,8 @@ Begin
 
   BoneCount := BoneCount + Bones;
   XP := (GetXPBarTotal - StartingExperience);
-  Sec:= (1+((Getsystemtime-StartTime)/1000));
-  XPH:= Round(((XP) / (GetTimeRunning / 1000)) * 3600);
- // XPH :=  (3600 * XP) / (Sec);
-  BonesPH := (3600*BoneCount) / (SeC);
+  XPH := Round(XP * (3600.0 / (GetTimeRunning / 1000.0)));
+  BonesPH := Round((BoneCount * (3600.0 / (GetTimeRunning / 1000.0))));
 
   Writeln('=========AshamanAltars=========');
   Writeln('=========Version: '+ScriptVersion+'=========');
@@ -1242,7 +1241,7 @@ Begin
           Writeln('FAILED TO WITHDRAW BONES');
         Break;
       End;
-    Until WithdrawEx(9,0,25,['ones','Bones','bones','one','Bon','nes','Bo','bo','ne','Drag','agon','drag','gon','Frost','rost','ost','Ashes','Ash','ash','hes'])
+    Until WithdrawEx(9,0,25,['ones','Bones','bones','one','Bon','nes','Bo','bo','ne','Drag','agon','drag','gon','Frost','rost','ost','ashes','Ash','ash','hes'])
 End;
 
 Procedure Banking;
@@ -1308,7 +1307,7 @@ Begin
       ConvertTime(TimeFromMark(SummoningTimer),H,M,S);
       If Debug Then
         Writeln('Summoning Timer in Minutes: '+ToStr(M));
-      If (PTS<>0) Then
+      If (PTS<>0) And (BankTime=1) Then
         If (M>NewPouch) And (Not StartSummon) And (UsingFamiliar) Then
         Begin
           If Debug Then
@@ -1475,11 +1474,33 @@ Begin
   MakeCompass(Direction);
 End;
 
+Procedure Bounce;
+Var
+  CTS: Integer;
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
+Begin
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+
+  SetColorSpeed2Modifiers(0.12, 1.35);
+  FindColorsSpiralTolerance(MSCX, MSCY, TPA, 9291216, msx1, msy1, msx2, msy2, 25);
+  ColorToleranceSpeed(CTS);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+
+  ATPA := TPAtoATPAEx(TPA, 40, 40);
+
+  SortATPASize(ATPA,True);
+
+  MiddleTPAEx(ATPA[0], BounceX, BounceY);
+End;
+
 Procedure Burners;
 Var
   X,Y,H,I,CTS,T: Integer;
   pArray: TPointArray;
   aPArray: T2DPointArray;
+  ClickLefts: Boolean;
 Begin
   If Debug Then
     Writeln('ENTERING PROCEDURE BURNERS');
@@ -1501,6 +1522,8 @@ Begin
   If Not FindDTM(HerbDTM,X,Y,mix1,miy1,mix2,miy2) Then
     Exit;
 
+  ClickLefts:=False;
+
   If Debug Then
     Writeln('HERB PRESENT');
 
@@ -1512,27 +1535,33 @@ Begin
       Begin
         If CountItems('DTM',HerbDTM,[]) > 1 Then
         Begin
+          ClickLefts:=True;
+
           AltarX1:=115;
           AltarY1:=50;
           AltarX2:=270;
           AltarY2:=160;
 
-          HumanMMouse(215,48,4,4);
+          If Walk Then
+          Begin
+            HumanMMouse(215,48,4,4);
 
-          If WaitUpText('alk',900) Then
-            ClickMouse2(True) Else
-            Begin
-              ClickMouse2(False);
-              WaitOption('alk',900);
-            End;
+            If WaitUpText('alk',900) Then
+              ClickMouse2(True) Else
+              Begin
+                ClickMouse2(False);
+                WaitOption('alk',900);
+              End;
 
-          Wait(RandomRange(600,700));
-          MarkTime(T);
-          Repeat
-            Wait(100);
-            If TimeFromMark(T)>5000 Then
-              Break;
-          Until Not IsMoving;
+            Wait(RandomRange(600,700));
+            MarkTime(T);
+            Repeat
+              Wait(100);
+              If TimeFromMark(T)>5000 Then
+                Break;
+            Until Not IsMoving;
+            Walk:=False;
+          End;
         End Else
         Begin
           AltarX1:=404;
@@ -1543,16 +1572,42 @@ Begin
       End Else
         If CountItems('DTM',HerbDTM,[]) > 1 Then
         Begin
+          ClickLefts:=True;
+
           AltarX1:=150;
           AltarY1:=72;
           AltarX2:=258;
           AltarY2:=129;
         End Else
         Begin
-          AltarX1:=178;
-          AltarY1:=MSY1;
-          AltarX2:=300;
-          AltarY2:=42;
+          ClickLefts:=True;
+
+          AltarX1:=165;
+          AltarY1:=42;
+          AltarX2:=262;
+          AltarY2:=161;
+
+          If Walk Then
+          Begin
+            Bounce;
+            HumanMMouse(BounceX+40,BounceY,4,4);
+
+            If WaitUpText('alk',900) Then
+              ClickMouse2(True) Else
+              Begin
+                ClickMouse2(False);
+                WaitOption('alk',900);
+              End;
+
+            Wait(RandomRange(600,700));
+            MarkTime(T);
+            Repeat
+              Wait(100);
+              If TimeFromMark(T)>5000 Then
+                Break;
+            Until Not IsMoving;
+            Walk:=False;
+          End;
         End;
 
     's':
@@ -1560,27 +1615,34 @@ Begin
       Begin
         If CountItems('DTM',HerbDTM,[]) > 1 Then
         Begin
+          ClickLefts:=True;
+
           AltarX1:=115;
           AltarY1:=50;
           AltarX2:=270;
           AltarY2:=160;
 
-          HumanMMouse(215,48,4,4);
 
-          If WaitUpText('alk',900) Then
-            ClickMouse2(True) Else
-            Begin
-              ClickMouse2(False);
-              WaitOption('alk',900);
-            End;
+          If Walk Then
+          Begin
+            HumanMMouse(215,48,4,4);
 
-          Wait(RandomRange(600,700));
-          MarkTime(T);
-          Repeat
-            Wait(100);
-            If TimeFromMark(T)>5000 Then
-              Break;
-          Until Not IsMoving;
+            If WaitUpText('alk',900) Then
+              ClickMouse2(True) Else
+              Begin
+                ClickMouse2(False);
+                WaitOption('alk',900);
+              End;
+
+            Wait(RandomRange(600,700));
+            MarkTime(T);
+            Repeat
+              Wait(100);
+              If TimeFromMark(T)>5000 Then
+                Break;
+            Until Not IsMoving;
+            Walk:=False;
+          End;
         End Else
         Begin
           AltarX1:=400;
@@ -1591,81 +1653,131 @@ Begin
       End Else
         If CountItems('DTM',HerbDTM,[]) > 1 Then
         Begin
+          ClickLefts:=True;
+
           AltarX1:=150;
           AltarY1:=72;
           AltarX2:=258;
           AltarY2:=129;
         End Else
         Begin
-          AltarX1:=178;
-          AltarY1:=MSY1;
-          AltarX2:=300;
-          AltarY2:=42;
+          ClickLefts:=True;
+
+          AltarX1:=165;
+          AltarY1:=42;
+          AltarX2:=262;
+          AltarY2:=161;
+
+          If Walk Then
+          Begin
+            Bounce;
+            HumanMMouse(BounceX+40,BounceY,4,4);
+
+            If WaitUpText('alk',900) Then
+              ClickMouse2(True) Else
+              Begin
+                ClickMouse2(False);
+                WaitOption('alk',900);
+              End;
+
+            Wait(RandomRange(600,700));
+            MarkTime(T);
+            Repeat
+              Wait(100);
+              If TimeFromMark(T)>5000 Then
+                Break;
+            Until Not IsMoving;
+            Walk:=False;
+          End;
         End;
     'w':
       If LowerCase(AltarPlace)='top' Then
+      Begin
         If CountItems('DTM',HerbDTM,[]) > 1 Then
         Begin
+          ClickLefts:=True;
+
           AltarX1:=MSX1;
           AltarY1:=36;
           AltarX2:=69;
           AltarY2:=155;
         End Else
         Begin
-          HumanMMouse(267,287,4,4);
+          ClickLefts:=True;
 
-          If WaitUpText('alk',900) Then
-            ClickMouse2(True) Else
-            Begin
-              ClickMouse2(False);
-              WaitOption('alk',900);
-            End;
+          If Walk Then
+          Begin
+            HumanMMouse(267,287,4,4);
 
-          Wait(RandomRange(600,700));
-          MarkTime(T);
-          Repeat
-            Wait(100);
-            If TimeFromMark(T)>5000 Then
-              Break;
-          Until Not IsMoving;
+            If WaitUpText('alk',900) Then
+              ClickMouse2(True) Else
+              Begin
+                ClickMouse2(False);
+                WaitOption('alk',900);
+              End;
+
+            Wait(RandomRange(600,700));
+            MarkTime(T);
+            Repeat
+              Wait(100);
+              If TimeFromMark(T)>5000 Then
+                Break;
+            Until Not IsMoving;
+            Walk:=False;
+          End;
 
           AltarX1:=150;
           AltarY1:=188;
           AltarX2:=284;
           AltarY2:=294;
         End;
+      End Else
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+          ClickLefts:=True;
     'e':
       If LowerCase(AltarPlace)='top' Then
+      Begin
         If CountItems('DTM',HerbDTM,[]) > 1 Then
         Begin
+          ClickLefts:=True;
+
           AltarX1:=425;
           AltarY1:=20;
           AltarX2:=515;
           AltarY2:=150;
         End Else
         Begin
-          HumanMMouse(258,311,4,4);
+          ClickLefts:=True;
 
-          If WaitUpText('alk',900) Then
-            ClickMouse2(True) Else
-            Begin
-              ClickMouse2(False);
-              WaitOption('alk',900);
-            End;
+          If Walk Then
+          Begin
+            HumanMMouse(258,311,4,4);
 
-          Wait(RandomRange(600,700));
-          MarkTime(T);
-          Repeat
-            Wait(100);
-            If TimeFromMark(T)>5000 Then
-              Break;
-          Until Not IsMoving;
+            If WaitUpText('alk',900) Then
+              ClickMouse2(True) Else
+              Begin
+                ClickMouse2(False);
+                WaitOption('alk',900);
+              End;
+
+            Wait(RandomRange(600,700));
+            MarkTime(T);
+            Repeat
+              Wait(100);
+              If TimeFromMark(T)>5000 Then
+                Break;
+            Until Not IsMoving;
+            Walk:=False;
+          End;
 
           AltarX1:=260;
           AltarY1:=153;
           AltarX2:=338;
           AltarY2:=264;
         End;
+      End Else
+        If CountItems('DTM',HerbDTM,[]) > 1 Then
+          ClickLefts:=True
   End;
 
   If Debug Then
@@ -1713,31 +1825,35 @@ Begin
       If Debug then
         Writeln('FOUND BURNER UPTEXT');
 
-      ClickMouse2(False);
-
-      If WaitOption('ight',RandomRange(400,500)) Then
+      If Not ClickLefts Then
       Begin
+        ClickMouse2(False);
+
+        If Not WaitOption('ight',RandomRange(400,500)) Then
+          Continue;
+
         If Debug then
           Writeln('FOUND OPTION TO LIGHT');
+      End Else
+      Begin
+        ClickMouse2(True);
 
-        ColorToleranceSpeed(CTS);
-        SetColorSpeed2Modifiers(0.2, 0.2);
-
-        WaitInvCountDec(4000);
-
-        If (CountItems('DTM',HerbDTM,[])=1) And ((LowerCase(AltarDirection)='n') Or (LowerCase(AltarDirection)='s')) And (LowerCase(AltarPlace)='side') Then
+        If DidYellowClick Then
         Begin
-          KeyDown(40);
-          Sleep(200 + Random(50));
-          KeyUp(40);
-          Wait(RandomRange(500,600));
+          HumanMMouse(261,177,3,3);
+          ClickMouse2(True);
+          Continue;
         End;
-
-        Exit;
       End;
+
+      ColorToleranceSpeed(CTS);
+      SetColorSpeed2Modifiers(0.2, 0.2);
+
+      WaitInvCountDec(4000);
+
+      Exit;
     End;
   End;
-
   ColorToleranceSpeed(CTS);
   SetColorSpeed2Modifiers(0.2, 0.2);
 End;
@@ -1854,8 +1970,13 @@ Var
   X,Y,H,I,CTS,T: Integer;
   pArray: TPointArray;
   aPArray: T2DPointArray;
+  ClickLefts: Boolean;
 Begin
   Result:=False;
+  ClickLefts:=False;
+
+  If PTS=0 Then
+    ClickLefts:=True;
 
   If (Not(LoggedIn)) Then
     Exit;
@@ -1882,7 +2003,7 @@ Begin
     InvMouse(RandomRange(10,18),3);
     If TimeFromMark(T)>10000 Then
       Exit;
-  Until WaitUpTextMulti(['ury','Bury','ones','bones'],RandomRange(1800,2000));
+  Until WaitUpTextMulti(['ury','Bury','ones','bones','shes','tter'],RandomRange(1800,2000));
 
   ClickMouse2(False);
 
@@ -1935,10 +2056,14 @@ Begin
       If Debug then
         Writeln('FOUND ALTAR UPTEXT');
 
-      ClickMouse2(False);
+      If Not ClickLefts Then
+      Begin
+        ClickMouse2(False);
 
-      If Not WaitOptionMulti(['Alta','Altar'],RandomRange(800,900)) Then
-          Altar;
+        If Not WaitOptionMulti(['Alta','Altar'],RandomRange(800,900)) Then
+            Altar;
+      End Else
+        ClickMouse2(True);
 
       If Debug then
         Writeln('FOUND USE OPTION');
@@ -2000,7 +2125,7 @@ Begin
 
   MouseBox(697,134,712,151,Mouse_Left);
 
-  Wait(RandomRange(800,900));
+  WaitInvCountInc(3000);
 End;
 
 Procedure Setup;
@@ -2096,7 +2221,7 @@ Begin
   End;
 
   Case LowerCase(BurnerType) Of
-    'incense' : Begin BurnerHue:=0.68; BurnerSat:=2.08; BurnerColor:=7964580; BurnerTolerance:=9; MaxLength:=110; BurnerLength:=15; End;
+    'oak' : Begin BurnerHue:=0.68; BurnerSat:=2.08; BurnerColor:=7964580; BurnerTolerance:=9; MaxLength:=110; BurnerLength:=15; End;
     'mahogany' : Begin BurnerHue:=0.16; BurnerSat:=0.06; BurnerColor:=6776941; BurnerTolerance:=19; MaxLength:=50; BurnerLength:=15; End;
     'marble' : Begin BurnerHue:=0.06; BurnerSat:=1.38; BurnerColor:=2788535; BurnerTolerance:=21; MaxLength:=100; BurnerLength:=10; End;
   End;
@@ -2133,6 +2258,7 @@ Begin
   If WaitFunc(@OpenDoor,100,RandomRange(14000,15000)) Then
   Begin
     MarkTime(T);
+    Walk:=True;
     Repeat
       Burners;
 
@@ -2156,7 +2282,7 @@ Begin
       If Debug then
         Writeln('WAITING FOR INVCOUNT4');
 
-      While WaitInvCountDec(5000) Do
+      While WaitInvCountDec(10000) Do
       Begin
         If FindNormalRandoms Then
         Begin
@@ -2175,7 +2301,7 @@ Begin
 
       If PTS=3 Then
       Begin
-        While WaitInvCountDec(5000) Do
+        While WaitInvCountDec(10000) Do
         Begin
           If FindNormalRandoms Then
           Begin
@@ -2195,7 +2321,7 @@ Begin
       If Debug then
         Writeln('WAITING FOR NO MORE BONES');
 
-      While WaitInvCountDec(5000) Do
+      While WaitInvCountDec(10000) Do
       Begin
         If FindNormalRandoms Then
         Begin
