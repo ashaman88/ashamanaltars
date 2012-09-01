@@ -29,12 +29,12 @@ AshamanAltars V1.13
 Const
   SRLStats_Username = '';     // ***Leave blank if you don't have a stats account***
   SRLStats_Password = '';
-  RingType          = 'tzhaar';     // ***Which type of ring are you using? (Duel,TzHaar)***
-  AltarDirection    = 'w';     // ***Cardinal direction from entrance to where your altar room is (N,E,S,W)***
-  HouseDesign       = 'basicstone';     // ***House style (Zenev,BasicWood,BasicStone,Tropical)***   --HIGHLY RECOMMEND BASIC STONE
-  BurnerType        = 'marble';     // ***Which type of burner do you have? (Oak,Mahogany,Marble)***
-  AltarPlace        = 'side';     // ***From the doorway is your altar at the top of the room or side? (Top, or Side)*** --SEE PICS IN OP
-  BoneOrAshType     = 'Regular';     // ***What type of bone or ash are you using? (Dragon,BabyDragon,..etc) Only for progress report purposes only***
+  RingType          = '';     // ***Which type of ring are you using? (Duel,TzHaar)***
+  AltarDirection    = '';     // ***Cardinal direction from entrance to where your altar room is (N,E,S,W)***
+  HouseDesign       = '';     // ***House style (Zenev,BasicWood,BasicStone,Tropical)***   --HIGHLY RECOMMEND BASIC STONE
+  BurnerType        = '';     // ***Which type of burner do you have? (Oak,Mahogany,Marble)***
+  AltarPlace        = '';     // ***From the doorway is your altar at the top of the room or side? (Top, or Side)*** --SEE PICS IN OP
+  BoneOrAshType     = '';     // ***What type of bone or ash are you using? (Dragon,BabyDragon,..etc) Only for progress report purposes only***
   UseAutoChecker    = True;   // ***Auto checks for most updated version and dowloads it.***
 
 Procedure DeclarePlayers;
