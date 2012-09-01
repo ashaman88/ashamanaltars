@@ -2,13 +2,12 @@ Program AshamanAltars;
   {$Define Smart}
   {$I SRL/SRL.Simba}
   {$I SRL/SRL/Misc/Debug.Simba}
-  {$i srl/srl/misc/paintsmart.simba}
 
 Var
   PTS: Integer;
 
 {
-AshamanAltars V1.12
+AshamanAltars V1.13
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -30,12 +29,12 @@ AshamanAltars V1.12
 Const
   SRLStats_Username = '';     // ***Leave blank if you don't have a stats account***
   SRLStats_Password = '';
-  RingType          = '';     // ***Which type of ring are you using? (Duel,TzHaar)***
-  AltarDirection    = '';     // ***Cardinal direction from entrance to where your altar room is (N,E,S,W)***
-  HouseDesign       = '';     // ***House style (Zenev,BasicWood,BasicStone,Tropical)***   --HIGHLY RECOMMEND BASIC STONE
-  BurnerType        = '';     // ***Which type of burner do you have? (Oak,Mahogany,Marble)***
-  AltarPlace        = '';     // ***From the doorway is your altar at the top of the room or side? (Top, or Side)*** --SEE PICS IN OP
-  BoneOrAshType     = '';     // ***What type of bone or ash are you using? (Dragon,BabyDragon,..etc) Only for progress report purposes only***
+  RingType          = 'tzhaar';     // ***Which type of ring are you using? (Duel,TzHaar)***
+  AltarDirection    = 'w';     // ***Cardinal direction from entrance to where your altar room is (N,E,S,W)***
+  HouseDesign       = 'basicstone';     // ***House style (Zenev,BasicWood,BasicStone,Tropical)***   --HIGHLY RECOMMEND BASIC STONE
+  BurnerType        = 'marble';     // ***Which type of burner do you have? (Oak,Mahogany,Marble)***
+  AltarPlace        = 'side';     // ***From the doorway is your altar at the top of the room or side? (Top, or Side)*** --SEE PICS IN OP
+  BoneOrAshType     = 'Regular';     // ***What type of bone or ash are you using? (Dragon,BabyDragon,..etc) Only for progress report purposes only***
   UseAutoChecker    = True;   // ***Auto checks for most updated version and dowloads it.***
 
 Procedure DeclarePlayers;
@@ -63,7 +62,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.12' ;
+  ScriptVersion = '1.13' ;
   Debug = False;
 
 Var
@@ -323,6 +322,7 @@ Var
 Begin
   j := MouseSpeed;
   GetMousePos(X, Y);
+  Y:=Y-50;
   Dist := Distance(X, Y, eX, eY);
   MP := Round(Dist/150);
   If MP < 0 Then
@@ -333,6 +333,7 @@ Begin
   Y2 := RandomRange(eY-(j*MP), eY+(j*MP));
   SuperWindMouse(X, Y, X2, Y2, 11, 8, 10.0 / randSpeed, 12.0 / randSpeed, 10.0 * randSpeed, 10.0 * randSpeed);
   GetMousePos(X, Y);
+  Y:=Y-50;
   MMouse(eX, eY, ranX, ranY);
   MouseSpeed := j;
 End;
@@ -403,15 +404,15 @@ Begin
     Writeln('Checkstuff is true');
     Result:=True;
   End;
-
-  If Not LoggedIn Then
-    TerminateScript;
 End;
 
 Procedure DismissFamiliar;
 Var
   T: Integer;
+Label
+  FamJump;
 Begin
+  FamJump:
   If Not LoggedIn Then
     Exit;
 
@@ -433,9 +434,11 @@ Begin
       Begin
         If Debug Then
           Writeln('Didnt find NPC chat, exiting.');
-        Exit;
+        Break;
       End;
     Until FindNPCChatText('Yes',Nothing);
+    If Not FindNPCChatText('Yes',Nothing) Then
+      GoTo FamJump;
     TypeSendEx('1',False);
     While UsingFamiliar Do
       Wait(100);
@@ -1432,9 +1435,43 @@ Begin
   MiddleTPAEx(ATPA[0], BounceX, BounceY);
 End;
 
+Procedure GetBounds;
+Var
+  CTS: Integer;
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
+  BurnerBox: TBox;
+Begin
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+
+  SetColorSpeed2Modifiers(0.07, 0.96);
+  FindColorsSpiralTolerance(MSCX, MSCY, TPA, 7116467,AltarX1,AltarY1,AltarX2,AltarY2, 13);
+  ColorToleranceSpeed(CTS);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+
+  ATPA := TPAtoATPAEx(TPA,15,15);
+
+  SortATPASize(ATPA,True);
+
+  If (Length(ATPA) = 0) Then
+  Begin
+    If Debug Then
+      Writeln('No burner colors found, sorry');
+    Exit;
+  End;
+
+  BurnerBox:=GetTPABounds(ATPA[0]);
+
+  AltarX1:=BurnerBox.X1;
+  AltarY1:=BurnerBox.Y1;
+  AltarX2:=BurnerBox.X2;
+  AltarY2:=BurnerBox.Y2;
+End;
+
 Function DTMBurners: Boolean;
 Var
-  MarbleDTM: Integer;
+  BurnerDTM: Integer;
   X,Y: Integer;
 Begin
   If Debug Then
@@ -1445,13 +1482,17 @@ Begin
 
   CheckStuff;
 
-  MarbleDTM := DTMFromString('mggAAAHicY2NgYFgDxJuAeAsQrwDi5UC8AYjPAPFJIL4ExJeB+AQQ3wLiDweUGRyNVBm8LbUYguz1GFxM1BgePbzLwA+Uw4YZcWAIAAB+AhBq');
+  Case LowerCase(BurnerType) Of
+    'oak' :       BurnerDTM := DTMFromString('mQwAAAHicY2ZgYKhiYmAohOIVQP48IF4KxPVVlQyXd/YyTGtJZeAH8mGYEQkDAQBcyQiL');
+    'mahogany' :  BurnerDTM := DTMFromString('mQwAAAHicY2ZgYKhiYmAohOIVQP48IF4KxPVVlQyXd/YyTGtJZeAH8mGYEQkDAQBcyQiL');
+    'marble' :    BurnerDTM := DTMFromString('mggAAAHicY2NgYFgDxJuAeAsQrwDi5UC8AYjPAPFJIL4ExJeB+AQQ3wLiDweUGRyNVBm8LbUYguz1GFxM1BgePbzLwA+Uw4YZcWAIAAB+AhBq');
+  End;
 
-  If FindDTMRotated(MarbleDTM,X,Y,AltarX1,AltarY1,AltarX2,AltarY2,-Pi,Pi,Pi/30,aFound) Then
+  If FindDTMRotated(BurnerDTM,X,Y,AltarX1,AltarY1,AltarX2,AltarY2,-Pi,Pi,Pi/30,aFound) Then
   Begin
     If Debug Then
       Writeln('Found DTM Burner');
-    FreeDTM(MarbleDTM);
+    FreeDTM(BurnerDTM);
     HumanMMouse(X,Y,5,5);
     If (WaitUpTextMulti(['ight','cense','Ligh'],RandomRange(300,400))) Then
     Begin
@@ -1479,13 +1520,22 @@ Begin
         End;
       End;
       If CountItems('DTM',HerbDTM,[]) = 1 Then
+      Begin
         InvMouse(6,Mouse_Move);
+        If WaitUpTextMulti(['ury','Bury','ones','bones','shes','tter'],RandomRange(500,600)) Then
+        Begin
+          ClickMouse2(False);
+          If Debug then
+            Writeln('Found bones/ashes');
+          WaitOptionMulti(['Use','Use ','se '],RandomRange(800,900));
+        End;
+      End;
       WaitInvCountDec(5000);
       FailedBurners:=0;
       Result:=True;
     End;
   End Else
-    FreeDTM(MarbleDTM);
+    FreeDTM(BurnerDTM);
 End;
 
 Procedure Burners;
@@ -1768,6 +1818,9 @@ Begin
 
   If Not DTMBurners Then
   Begin
+    If LowerCase(BurnerType)='oak' Then
+      GetBounds;
+
     CTS := GetColorToleranceSpeed;
     ColorToleranceSpeed(2);
 
@@ -1776,7 +1829,7 @@ Begin
     ColorToleranceSpeed(CTS);
     SetColorSpeed2Modifiers(0.2, 0.2);
 
-    ATPA := SplitTPAEx(TPA, 15, 15);
+    ATPA := SplitTPAEx(TPA,10,10);
     SortATPASize(ATPA,False);
 
     If Debug Then
@@ -1874,6 +1927,8 @@ Begin
     Wait(RandomRange(500,600));
     MakeCompass(Direction);
   End;
+
+  MouseBox(DoorX1,DoorY1,DoorX2,DoorY2,Mouse_Move);
 
   If Debug Then
     Writeln('Black count: '+ToStr(CountColor(0,407,137,472,213)));
@@ -2200,18 +2255,20 @@ End;
 
 Procedure Setup;
 Var
-  X,Y,H,S: Integer;
+  X,Y: Integer;
 Begin
   ClearDebug;
   AutoUpdateMe;
 
-  //Smart_FixSpeed:=True;
-  //SRL_SixHourFix:= True;
-
-  Smart_Server := 10;
-  Smart_Members := True;
-  Smart_Signed := True;
-  Smart_SuperDetail := False;
+  {$IFDEF SIMBAMAJOR980}
+    SMART_SERVER := 10;
+    SMART_MEMBERS := TRUE;
+    SMART_SIGNED := TRUE;
+    SMART_SUPERDETAIL := FALSE;
+  {$ELSE}
+    SRL_SIXHOURFIX := TRUE;
+    SMART_FIXSPEED := TRUE;
+  {$ENDIF}
 
   SetupSRL;
 
@@ -2299,9 +2356,9 @@ Begin
   End;
 
   Case LowerCase(BurnerType) Of
-    'oak' : Begin BurnerHue:=0.68; BurnerSat:=2.08; BurnerColor:=7964580; BurnerTolerance:=9; MaxLength:=110; BurnerLength:=15; End;
-    'mahogany' : Begin BurnerHue:=0.16; BurnerSat:=0.06; BurnerColor:=6776941; BurnerTolerance:=19; MaxLength:=50; BurnerLength:=15; End;
-    'marble' : Begin BurnerHue:=0.06; BurnerSat:=1.38; BurnerColor:=2788535; BurnerTolerance:=21; MaxLength:=100; BurnerLength:=10; End;
+    'oak'      : Begin BurnerHue:=0.00; BurnerSat:=0.05; BurnerColor:=7303029; BurnerTolerance:=13; MaxLength:=110; BurnerLength:=2;  End;
+    'mahogany' : Begin BurnerHue:=0.16; BurnerSat:=0.06; BurnerColor:=6776941; BurnerTolerance:=19; MaxLength:=50;  BurnerLength:=15; End;
+    'marble'   : Begin BurnerHue:=0.06; BurnerSat:=1.38; BurnerColor:=2788535; BurnerTolerance:=21; MaxLength:=100; BurnerLength:=10; End;
   End;
 
   Case PTS Of
@@ -2438,6 +2495,9 @@ Begin
   End;
 
   ProgressReport;
+
+  If Not LoggedIn Then
+    LoginPlayer;
 
   ToBank;
 End;
