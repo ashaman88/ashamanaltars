@@ -7,7 +7,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.14
+AshamanAltars V1.15
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -62,7 +62,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.14' ;
+  ScriptVersion = '1.15' ;
   Debug = False;
 
 Var
@@ -120,6 +120,22 @@ Begin
   Writeln('===============================');
 
   Stats_Commit;
+End;
+
+Function WaitLoggedIn(Time:Integer): Boolean;
+Var
+  T: Integer;
+Begin
+  Repeat
+    MarkTime(T);
+    SRL_ResetNavBar;
+    If TimeFromMark(T)>Time Then
+    Begin
+      Result:=False;
+      Exit;
+    End;
+  Until (GetColor(472, 490) = 16777215);
+  Result:=True;
 End;
 
  {*******************************************************************************
@@ -322,7 +338,6 @@ Var
 Begin
   j := MouseSpeed;
   GetMousePos(X, Y);
-  Y:=Y-50;
   Dist := Distance(X, Y, eX, eY);
   MP := Round(Dist/150);
   If MP < 0 Then
@@ -333,7 +348,6 @@ Begin
   Y2 := RandomRange(eY-(j*MP), eY+(j*MP));
   SuperWindMouse(X, Y, X2, Y2, 11, 8, 10.0 / randSpeed, 12.0 / randSpeed, 10.0 * randSpeed, 10.0 * randSpeed);
   GetMousePos(X, Y);
-  Y:=Y-50;
   MMouse(eX, eY, ranX, ranY);
   MouseSpeed := j;
 End;
@@ -392,12 +406,12 @@ Function CheckStuff: Boolean;
 Begin
   Result:=False;
 
-  If Not LoggedIn Then
+  If Not WaitLoggedIn(1000) Then
     LoginPlayer;
 
   If FindNormalRandoms Then
   Begin
-    If Not LoggedIn Then
+    If Not WaitLoggedIn(1000) Then
       TerminateScript;
     MakeCompass(Direction);
     SetAngle(SRL_ANGLE_HIGH);
@@ -413,7 +427,7 @@ Label
   FamJump;
 Begin
   FamJump:
-  If Not LoggedIn Then
+  If Not WaitLoggedIn(1000) Then
     Exit;
 
   If Debug Then
@@ -449,10 +463,9 @@ Function SummoningRenew(PouchToSummon: integer): Boolean;
 Var
   X,Y,Tries: Integer;
 Begin
-  If Not LoggedIn Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If PTS=0 Then
   Begin
@@ -564,10 +577,9 @@ Begin
   Result:=False;
   Jumper:=False;
 
-  If Not Loggedin Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If Not UsingFamiliar Then
   Begin
@@ -675,10 +687,9 @@ Begin
 
   Result:=False;
 
-  If (Not(LoggedIn)) Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   MouseSpeed := RandomRange(18, 23);
 
@@ -794,10 +805,9 @@ Begin
   If Debug Then
     Writeln('ENTERING TOBANK PROCEDURE');
 
-  If Not LoggedIn Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If (GetCurrentTab)<>(Tab_Equip) Then
     WaitGameTab(Tab_Equip,5000);
@@ -906,10 +916,9 @@ Begin
   If Debug then
     Writeln('ENTERING BANKING FAILSAFE FUNCTION');
 
-  If Not Loggedin Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   MouseSpeed := RandomRange(18, 23);
 
@@ -986,10 +995,9 @@ Begin
   If Debug then
     Writeln('ENTERING WALKTOBANK PROCEDURE');
 
-  If Not Loggedin Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If (BankTime=1) And (LowerCase(RingType)='duel') Then
   Begin
@@ -1223,10 +1231,9 @@ Begin
     If Debug then
       Writeln('BANKTIME: ' +ToStr(BankTime));
 
-    If Not Loggedin Then
+    CheckStuff;
+    If Not WaitLoggedIn(1000) Then
       Exit;
-
-    CheckStuff
 
     MarkTime(BT);
     Retry:
@@ -1477,10 +1484,9 @@ Begin
   If Debug Then
     Writeln('ENTERING DTMBURNERS FUNCTION');
 
-  If (Not(LoggedIn)) Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   Case LowerCase(BurnerType) Of
     'oak' :       BurnerDTM := DTMFromString('mQwAAAHicY2ZgYKhiYmAohOIVQP48IF4KxPVVlQyXd/YyTGtJZeAH8mGYEQkDAQBcyQiL');
@@ -1547,10 +1553,9 @@ Begin
   If Debug Then
     Writeln('ENTERING BURNERS PROCEDURE');
 
-  If (Not(LoggedIn)) Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If Not FindDTM(HerbDTM,X,Y,MIX1,MIY1,MIX2,MIY2) Then
     Exit;
@@ -1911,10 +1916,9 @@ Var
 Begin
   Result:=False;
 
-  If (Not(LoggedIn)) Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If Debug then
     Writeln('ENTERING OPENDOOR FUNCTION');
@@ -2010,10 +2014,9 @@ Begin
   If Debug Then
     Writeln('ENTERING DTMALTAR FUNCTION');
 
-  If (Not(LoggedIn)) Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If FindDTMRotated(AltarDTM,X,Y,MSX1,MSY1,MSX2,MSY2,-Pi,Pi,Pi/30,aFound) Then
   Begin
@@ -2085,10 +2088,9 @@ Begin
   If Debug Then
     Writeln('ENTERING ALTAR FUNCTION');
 
-  If (Not(LoggedIn)) Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If FindDTM(HerbDTM,X,Y,MIX1,MIY1,MIX2,MIY2) Then
     Exit;
@@ -2232,10 +2234,9 @@ End;
 
 Procedure GetBOB;
 Begin
-  If Not LoggedIn Then
-    Exit;
-
   CheckStuff;
+  If Not WaitLoggedIn(1000) Then
+    Exit;
 
   If Debug then
     Writeln('ENTERING GETBOB PROCEDURE');
@@ -2496,8 +2497,7 @@ Begin
 
   ProgressReport;
 
-  If Not LoggedIn Then
-    LoginPlayer;
+  CheckStuff;
 
   ToBank;
 End;
@@ -2506,5 +2506,5 @@ Begin
   Setup;
   Repeat
     Mainloop;
-  Until AllPlayersInactive;
+  Until (AllPlayersInactive);
 End.
