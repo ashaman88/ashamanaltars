@@ -7,7 +7,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.15
+AshamanAltars V1.16
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -62,7 +62,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.15' ;
+  ScriptVersion = '1.16' ;
   Debug = False;
 
 Var
@@ -126,8 +126,8 @@ Function WaitLoggedIn(Time:Integer): Boolean;
 Var
   T: Integer;
 Begin
+  MarkTime(T);
   Repeat
-    MarkTime(T);
     SRL_ResetNavBar;
     If TimeFromMark(T)>Time Then
     Begin
