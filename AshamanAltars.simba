@@ -7,7 +7,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.16
+AshamanAltars V1.17
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -62,7 +62,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.16' ;
+  ScriptVersion = '1.17' ;
   Debug = False;
 
 Var
@@ -1489,7 +1489,7 @@ Begin
     Exit;
 
   Case LowerCase(BurnerType) Of
-    'oak' :       BurnerDTM := DTMFromString('mQwAAAHicY2ZgYKhiYmAohOIVQP48IF4KxPVVlQyXd/YyTGtJZeAH8mGYEQkDAQBcyQiL');
+    'oak' :       BurnerDTM := DTMFromString('mWAAAAHicY2FgYDjCBMGHgHgfENcyMjBUAXENFE/q7maoKCpimDN1KsPaGcUM/EA9yJgRDYMAAJTiC8o=');
     'mahogany' :  BurnerDTM := DTMFromString('mQwAAAHicY2ZgYKhiYmAohOIVQP48IF4KxPVVlQyXd/YyTGtJZeAH8mGYEQkDAQBcyQiL');
     'marble' :    BurnerDTM := DTMFromString('mggAAAHicY2NgYFgDxJuAeAsQrwDi5UC8AYjPAPFJIL4ExJeB+AQQ3wLiDweUGRyNVBm8LbUYguz1GFxM1BgePbzLwA+Uw4YZcWAIAAB+AhBq');
   End;
