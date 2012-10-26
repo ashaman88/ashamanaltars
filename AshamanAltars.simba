@@ -2,12 +2,13 @@ Program AshamanAltars;
   {$Define Smart}
   {$I SRL/SRL.Simba}
   {$I SRL/SRL/Misc/Debug.Simba}
+  {$I SRL/SRL/Misc/SmartGraphics.Simba}
 
 Var
   PTS: Integer;
 
 {
-AshamanAltars V1.17
+AshamanAltars V1.18
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -62,7 +63,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.17' ;
+  ScriptVersion = '1.18' ;
   Debug = False;
 
 Var
@@ -1457,7 +1458,7 @@ Begin
   ColorToleranceSpeed(CTS);
   SetColorSpeed2Modifiers(0.2, 0.2);
 
-  ATPA := TPAtoATPAEx(TPA,15,15);
+  ATPA := TPAtoATPAEx(TPA,25,25);
 
   SortATPASize(ATPA,True);
 
@@ -1470,10 +1471,13 @@ Begin
 
   BurnerBox:=GetTPABounds(ATPA[0]);
 
-  AltarX1:=BurnerBox.X1;
-  AltarY1:=BurnerBox.Y1;
-  AltarX2:=BurnerBox.X2;
-  AltarY2:=BurnerBox.Y2;
+  AltarX1:=BurnerBox.X1-10;
+  AltarY1:=BurnerBox.Y1-10;
+  AltarX2:=BurnerBox.X2+10;
+  AltarY2:=BurnerBox.Y2+10;
+
+  If Debug Then
+    Smart_DrawBox(IntToBox(AltarX1,AltarY1,AltarX2,AltarY2));
 End;
 
 Function DTMBurners: Boolean;
@@ -1488,10 +1492,13 @@ Begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
+  If Debug Then
+    Smart_DrawBox(IntToBox(AltarX1,AltarY1,AltarX2,AltarY2));
+
   Case LowerCase(BurnerType) Of
     'oak' :       BurnerDTM := DTMFromString('mWAAAAHicY2FgYDjCBMGHgHgfENcyMjBUAXENFE/q7maoKCpimDN1KsPaGcUM/EA9yJgRDYMAAJTiC8o=');
     'mahogany' :  BurnerDTM := DTMFromString('mQwAAAHicY2ZgYKhiYmAohOIVQP48IF4KxPVVlQyXd/YyTGtJZeAH8mGYEQkDAQBcyQiL');
-    'marble' :    BurnerDTM := DTMFromString('mggAAAHicY2NgYFgDxJuAeAsQrwDi5UC8AYjPAPFJIL4ExJeB+AQQ3wLiDweUGRyNVBm8LbUYguz1GFxM1BgePbzLwA+Uw4YZcWAIAAB+AhBq');
+    'marble' :    BurnerDTM := DTMFromString('mggAAAHicY2NgYGAFYk4GCGAEYl4g5gZiFiAWgoqD+FxQ+Q8HlBkePbzL4GKixhBkr8fgbanF4GikyiAClJPDgplwYAgAADaZCCY=');
   End;
 
   If FindDTMRotated(BurnerDTM,X,Y,AltarX1,AltarY1,AltarX2,AltarY2,-Pi,Pi,Pi/30,aFound) Then
@@ -1818,8 +1825,8 @@ Begin
           ClickLefts:=True
   End;
 
-//  If Debug Then
-//    SMART_DrawBoxEx(True,False,IntToBox(AltarX1,AltarY1,AltarX2,AltarY2),clGreen);
+  If Debug Then
+    Smart_DrawBox(IntToBox(AltarX1,AltarY1,AltarX2,AltarY2));
 
   If Not DTMBurners Then
   Begin
@@ -2357,7 +2364,7 @@ Begin
   End;
 
   Case LowerCase(BurnerType) Of
-    'oak'      : Begin BurnerHue:=0.00; BurnerSat:=0.05; BurnerColor:=7303029; BurnerTolerance:=13; MaxLength:=110; BurnerLength:=2;  End;
+    'oak'      : Begin BurnerHue:=2.87; BurnerSat:=0.15; BurnerColor:=7040357; BurnerTolerance:=16; MaxLength:=110; BurnerLength:=2;  End;
     'mahogany' : Begin BurnerHue:=0.16; BurnerSat:=0.06; BurnerColor:=6776941; BurnerTolerance:=19; MaxLength:=50;  BurnerLength:=15; End;
     'marble'   : Begin BurnerHue:=0.06; BurnerSat:=1.38; BurnerColor:=2788535; BurnerTolerance:=21; MaxLength:=100; BurnerLength:=10; End;
   End;
