@@ -8,7 +8,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.18
+AshamanAltars V1.19
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -63,7 +63,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.18' ;
+  ScriptVersion = '1.19' ;
   Debug = False;
 
 Var
@@ -1483,7 +1483,7 @@ End;
 Function DTMBurners: Boolean;
 Var
   BurnerDTM: Integer;
-  X,Y: Integer;
+  X,Y,T: Integer;
 Begin
   If Debug Then
     Writeln('ENTERING DTMBURNERS FUNCTION');
@@ -1542,8 +1542,15 @@ Begin
             Writeln('Found bones/ashes');
           WaitOptionMulti(['Use','Use ','se '],RandomRange(800,900));
         End;
+        MarkTime(T);
+        Repeat
+          Wait(Random(100));
+          If TimeFromMark(T)>5000 Then
+            Exit;
+        Until Not FindDTM(HerbDTM,X,Y,MIX1,MIY1,MIX2,MIY2);
       End;
-      WaitInvCountDec(5000);
+      If FindDTM(HerbDTM,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+        WaitInvCountDec(5000);
       FailedBurners:=0;
       Result:=True;
     End;
@@ -1742,9 +1749,9 @@ Begin
         Begin
           ClickLefts:=True;
 
-          AltarX1:=MSX1;
+          AltarX1:=30;
           AltarY1:=36;
-          AltarX2:=69;
+          AltarX2:=110;
           AltarY2:=155;
         End Else
         Begin
@@ -1906,8 +1913,21 @@ Begin
               Writeln('Found bones/ashes');
             WaitOptionMulti(['Use','Use ','se '],RandomRange(800,900));
           End;
+          MarkTime(T);
+          Repeat
+            Wait(Random(100));
+            If TimeFromMark(T)>5000 Then
+              Exit;
+          Until Not FindDTM(HerbDTM,X,Y,MIX1,MIY1,MIX2,MIY2);
+          If Debug Then
+            Writeln('No more herbs');
         End;
-        WaitInvCountDec(5000);
+        If FindDTM(HerbDTM,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+        Begin
+          If Debug Then
+            Writeln('Waiting for herb to go away');
+          WaitInvCountDec(5000);
+        End;
         FailedBurners:=0;
         Exit;
       End;
@@ -2084,7 +2104,11 @@ Var
   ATPA: T2DPointArray;
 Begin
   While IsMoving Do
+  Begin
+    If Debug Then
+      Writeln('Waiting to stop moving');
     Wait(Random(100));
+  End;
 
   Result:=False;
   ClickLefts:=False;
