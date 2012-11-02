@@ -8,7 +8,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.19
+AshamanAltars V1.20
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -63,7 +63,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.19' ;
+  ScriptVersion = '1.20' ;
   Debug = False;
 
 Var
@@ -1596,7 +1596,7 @@ Begin
 
           If Walk Then
           Begin
-            HumanMMouse(215,48,4,4);
+            HumanMMouse(215,85,4,4);
 
             If WaitUpText('alk',900) Then
               ClickMouse2(True) Else
@@ -1677,7 +1677,7 @@ Begin
 
           If Walk Then
           Begin
-            HumanMMouse(215,48,4,4);
+            HumanMMouse(215,85,4,4);
 
             If WaitUpText('alk',900) Then
               ClickMouse2(True) Else
