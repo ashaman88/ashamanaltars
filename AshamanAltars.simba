@@ -8,7 +8,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.20
+AshamanAltars V1.21
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -63,7 +63,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.20' ;
+  ScriptVersion = '1.21' ;
   Debug = False;
 
 Var
@@ -1216,7 +1216,7 @@ Begin
           Writeln('Failed to withdraw bones');
         Break;
       End;
-    Until WithdrawEx(9,0,25,['ones','Bones','bones','one','Bon','nes','Bo','bo','ne','Drag','agon','drag','gon','Frost','rost','ost','ashes','Ash','ash','hes'])
+    Until Withdraw(9,0,0)
 End;
 
 Procedure Banking;
