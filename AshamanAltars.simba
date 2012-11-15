@@ -8,7 +8,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.21
+AshamanAltars V1.22
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -63,7 +63,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.21' ;
+  ScriptVersion = '1.22' ;
   Debug = False;
 
 Var
@@ -497,7 +497,7 @@ Begin
         If Debug Then
           Writeln('Found summoning potion.');
 
-        HumanMMouse(X,Y,4,4);
+        HumanMMouse(X,Y+5,4,2);
 
         If WaitUptextMulti(['ummoning', 'potion','Summon','poti','tion','ummon','moning'], 500) Then
         Begin
@@ -821,7 +821,7 @@ Begin
     R:= GetRingCount
     Ring:= R - 1;
 
-    If R<>0 Then
+    If CountColorTolerance(1677077,679,363,717,401,50)>0 Then
     Begin
       If Debug then
         Writeln('Found Ring Teleporting');
@@ -2329,7 +2329,7 @@ Begin
   ClearDebug;
   Writeln('Make sure you have all your settings in correct!');
   Writeln('If you have problems, 90% of the time it is incorrect setup, make sure you double check settings with OP!');
-  Writeln('Turn on Debug mode (line 64) if you are still having problems and tell me what it says.');
+  Writeln('Turn on Debug mode (line 67) if you are still having problems and tell me what it says.');
   Writeln('Also show me a picture of where it is messing up and what you have exactly typed into the script.');
 
   If (GetCurrentTab)<>(Tab_Equip) Then
