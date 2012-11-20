@@ -8,7 +8,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.22
+AshamanAltars V1.23
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -63,7 +63,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.22' ;
+  ScriptVersion = '1.23' ;
   Debug = False;
 
 Var
@@ -2070,22 +2070,9 @@ Begin
       If Debug then
         Writeln('Found use DTM option');
 
-      MouseBox(222,408,295,447,Mouse_Move);
-
-      If WaitUpTextMulti(['Offer','ffer','All ','Off','Offe'],3000) Then
+      If WaitInvCountDec(5000) Then
       Begin
         Wait(RandomRange(100,200));
-        ClickMouse2(True);
-
-        If Debug then
-          Writeln('Waiting for first DTM bones to go');
-
-        If Not WaitInvCountDec(4000) Then
-        Begin
-          FailDTM:=True;
-          Exit;
-        End;
-
         Result:=True;
       End Else
         If FindBlackChatMessage('reach') Then
@@ -2215,19 +2202,9 @@ Begin
             If Debug then
               Writeln('Found use option');
 
-            MouseBox(222,408,295,447,Mouse_Move);
-
-            If WaitUpTextMulti(['Offer','ffer','All ','Off','Offe'],3000) Then
+            If WaitInvCountDec(5000) Then
             Begin
               Wait(RandomRange(100,200));
-              ClickMouse2(True);
-
-              If Debug then
-              Writeln('Waiting for first bones to go');
-
-              If Not WaitInvCountDec(4000) Then
-                Altar;
-
               Result:= True;
               Exit;
             End Else
