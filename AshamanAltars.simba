@@ -64,7 +64,7 @@ End;
 
 Const
   ScriptVersion = '1.24' ;
-  Debug = True;
+  Debug = False;
 
 Var
  BankTime,Ring,HerbDTM,RingDTM,TabDTM,BoneCount,XP,StartTime,StartingExperience,BonesPH,XPH,DoorX1,DoorY1,DoorX2,DoorY2: Integer;
