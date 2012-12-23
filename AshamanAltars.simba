@@ -8,7 +8,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.23
+AshamanAltars V1.24
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -48,7 +48,7 @@ Begin
     Name        := '';         // ***RS Username***
     Pass        := '';         // ***RS Pass***
     Pin         := '';         // ***RS Pin***
-    PTS         := 0;          // ***Pouch to summon, 1 for terrorbird, 2 for wartort, 3 for yak, 0 for nothing***
+    PTS         := 2;          // ***Pouch to summon, 1 for terrorbird, 2 for wartort, 3 for yak, 0 for nothing***
     BoxRewards  := ['Coins', 'oins'];
     Active      := True;
   End;
@@ -63,8 +63,8 @@ End;
 
 
 Const
-  ScriptVersion = '1.23' ;
-  Debug = False;
+  ScriptVersion = '1.24' ;
+  Debug = True;
 
 Var
  BankTime,Ring,HerbDTM,RingDTM,TabDTM,BoneCount,XP,StartTime,StartingExperience,BonesPH,XPH,DoorX1,DoorY1,DoorX2,DoorY2: Integer;
@@ -358,14 +358,12 @@ Var
   CTS: Integer;
   TPA: TPointArray;
 Begin
-
   CTS:= GetColorToleranceSpeed;
   SetColorToleranceSpeed(2);
   SetColorSpeed2Modifiers(0.18, 0.88);
   Result:= FindColorsTolerance(TPA, 8763221, 692, 130, 721, 160, 21);
   SetColorSpeed2Modifiers(0.2, 0.2);
   ColorToleranceSpeed(CTS);
-
 End;
 
 Function UsingFamiliar: Boolean;              //By Flight.   Modified highly!
@@ -390,10 +388,8 @@ Begin
       Wait(RandomRange(200,300));
     Until(PointInBox(Point(X, Y), IntToBox(691, 131, 720, 159)));
 
-    Result:= (Not WaitUptextMulti(['elect', 'lect'], RandomRange(200,300)));
+    Result:= (Not WaitUptextMulti(['Pet', 'et '], RandomRange(200,300)));
   End;
-
-
 End;
 
 Function SummonPoints: Integer;
@@ -1088,7 +1084,7 @@ End;
 
 Procedure WithdrawItems;
 Var
-  X,Y,T: Integer;
+  X,Y,T,I: Integer;
 Begin
   If Debug then
     Writeln('ENTERING WITHDRAWITEMS PROCEDURE');
@@ -1120,35 +1116,38 @@ Begin
 
     If BankTime>1 Then
     Begin
-      If FindDTM(Pouch,X,Y,MIX1,MIY1,MIX2,MIY2) Then
-        If UsingFamiliar Then
-        Begin
-          If Debug then
-            Writeln('Found pouch, depositing');
-          HumanMMouse(X,Y,4,4);
-          ClickMouse2(True);
-          WaitInvCountDec(2000);
-        End;
+      For I:=0 To 1 Do
+      Begin
+        If FindDTM(Pouch,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+          If UsingFamiliar Then
+          Begin
+            If Debug then
+              Writeln('Found pouch, depositing');
+            HumanMMouse(X,Y,4,4);
+            ClickMouse2(True);
+            WaitInvCountDec(2000);
+          End;
 
-      If FindDTM(Summoning,X,Y,MIX1,MIY1,MIX2,MIY2) Then
-        If UsingFamiliar Then
-        Begin
-          If Debug then
-            Writeln('Found potion, depositing');
-          HumanMMouse(X,Y,4,4);
-          ClickMouse2(True);
-          WaitInvCountDec(2000);
-        End;
+        If FindDTM(Summoning,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+          If UsingFamiliar Then
+          Begin
+            If Debug then
+              Writeln('Found potion, depositing');
+            HumanMMouse(X,Y,4,4);
+            ClickMouse2(True);
+            WaitInvCountDec(2000);
+          End;
 
-      If LowerCase(RingType)='duel' Then
-        If FindDTM(RingDTM,X,Y,MIX1,MIY1,MIX2,MIY2) Then
-        Begin
-          If Debug then
-            Writeln('Found extra ring, depositing');
-          HumanMMouse(X,Y,4,4);
-          ClickMouse2(True);
-          WaitInvCountDec(2000);
-        End;
+        If LowerCase(RingType)='duel' Then
+          If FindDTM(RingDTM,X,Y,MIX1,MIY1,MIX2,MIY2) Then
+          Begin
+            If Debug then
+              Writeln('Found extra ring, depositing');
+            HumanMMouse(X,Y,4,4);
+            ClickMouse2(True);
+            WaitInvCountDec(2000);
+          End;
+      End;
     End;
 
     If Debug Then
@@ -1785,7 +1784,19 @@ Begin
         End;
       End Else
         If CountItems('DTM',HerbDTM,[]) > 1 Then
+        Begin
           ClickLefts:=True;
+          AltarX1:=129;
+          AltarY1:=132;
+          AltarX2:=200;
+          AltarY2:=263;
+        End Else
+        Begin
+          AltarX1:=MSX1;
+          AltarY1:=132;
+          AltarX2:=135;
+          AltarY2:=263;
+        End;
     'e':
       If LowerCase(AltarPlace)='top' Then
       Begin
