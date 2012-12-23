@@ -589,7 +589,7 @@ Begin
     MouseBox(697,134,712,151,Mouse_Right) Else
     ClickMouse2(False);
 
-  If WaitOptionMulti(['act','Inte','Interact','eract'],1500) Then
+  If WaitOptionMulti(['act','Interact','eract'],1500) Then
   Begin
     If Debug Then
       Writeln('Found option to interact with familiar');
