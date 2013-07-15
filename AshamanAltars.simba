@@ -1,5 +1,6 @@
 Program AshamanAltars;
-  {$Define Smart}
+  {$IFDEF RAYMONDPOWNS}{wrappers} function FloodFillTPAWrap(const TPA: TPointArray): T2DPointArray; var tempATPA: T2DPointArray; begin tempATPA:= FloodFillTPA(TPA); Result:= tempATPA; SetLength(tempATPA, 0); end; function FindTPAEdges(const p: TPointArray): TPointArray; begin FindTPAEdgesWrap(p, result); end; Function RotatePoints(Const P: TPointArray; A, cx, cy: Extended): TPointArray; begin RotatePointsWrap(P, A, cx, cy, result); end; function TPAFromCircle(const CX, CY, Radius: Integer): TPointArray; begin TPAFromCircleWrap(CX, CY, Radius, result); end; function TPAFromEllipse(const CX, CY, XRadius, YRadius : Integer): TPointArray; begin TPAFromEllipseWrap(CX, CY, XRadius, YRadius, result); end; function TPAFromBox(const Box : TBox) : TPointArray; begin TPAFromBoxWrap(Box, result); end; Function ReturnPointsNotInTPA(Const TotalTPA: TPointArray; const Box: TBox): TPointArray; begin ReturnPointsNotInTPAWrap(TotalTPA, Box, result); end; function CombineIntArray(const Ar1, Ar2: TIntegerArray): TIntegerArray; begin CombineIntArrayWrap(Ar1, Ar2, result); end; function ReArrangeandShortenArray(const a: TPointArray; Dist: Integer): TPointArray; begin ReArrangeandShortenArrayWrap(a, Dist, result); end; function ReArrangeandShortenArrayEx(const a: TPointArray; w, h: Integer): TPointArray; begin ReArrangeandShortenArrayExWrap(a, w, h, result); end; function CombineTPA(const Ar1, Ar2: TPointArray): TPointArray; begin CombineTPAWrap(Ar1, Ar2, Result); end; function RemoveDistTPointArray(x, y, dist: Integer;const ThePoints: TPointArray; RemoveHigher: Boolean): TPointArray; begin RemoveDistTPointArrayWrap(x, y, dist, ThePoints, RemoveHigher, Result); end; function TPAFromText(const text, font: String; var w,h: Integer): TPointArray; begin TPAFromTextWrap(text, font, w, h, result); end; function GetColors(const Coords: TPointArray): TIntegerArray; begin GetColorsWrap(Coords, Result); end; function Explode(del, str: string): TStringArray; begin ExplodeWrap(del, str, Result); end; function MergeATPA(const ATPA : T2DPointArray): TPointArray; begin MergeATPAWrap(ATPA, Result); end; function SplitTPA(arr : TPointArray; dist : Integer) : T2DPointArray; begin SplitTPAWrap(arr, dist, result); end; function SplitTPAEx(arr : TPointArray; w, h : integer) : T2DPointArray; begin SplitTPAExWrap(Arr, w, h, result); end; function ClearTPAFromTPA(arP, ClearPoints : TPointArray) : TPointArray; begin ClearTPAFromTPAWrap(arP, ClearPoints, result); end; function TPAToATPAEx(arP : TPointArray; w, h : integer) : T2DPointArray; begin TPAtoATPAExWrap(arP, w, h, result); end; function TPAToATPA(arP : TPointArray; dist : Integer) : T2DPointArray; begin TPAtoATPAWrap(arP, dist, result); end; function FindGapsTPA(TPA : TPointArray; MinPixels : integer) : T2DPointArray; begin FindGapsTPAWrap(tpa, MinPixels, result); end; {$ENDIF}
+  {$Define Smart8}
   {$I SRL/SRL.Simba}
   {$I SRL/SRL/Misc/Debug.Simba}
   {$I SRL/SRL/Misc/SmartGraphics.Simba}
@@ -8,7 +9,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.24
+AshamanAltars V1.26
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -30,12 +31,20 @@ AshamanAltars V1.24
 Const
   SRLStats_Username = '';     // ***Leave blank if you don't have a stats account***
   SRLStats_Password = '';
+
+  {Teleport Type}
   RingType          = '';     // ***Which type of ring are you using? (Duel,TzHaar)***
+
+  {House Configuration}
   AltarDirection    = '';     // ***Cardinal direction from entrance to where your altar room is (N,E,S,W)***
   HouseDesign       = '';     // ***House style (Zenev,BasicWood,BasicStone,Tropical)***   --HIGHLY RECOMMEND BASIC STONE
   BurnerType        = '';     // ***Which type of burner do you have? (Oak,Mahogany,Marble)***
   AltarPlace        = '';     // ***From the doorway is your altar at the top of the room or side? (Top, or Side)*** --SEE PICS IN OP
+
+  {Item Type}
   BoneOrAshType     = '';     // ***What type of bone or ash are you using? (Dragon,BabyDragon,..etc) Only for progress report purposes only***
+
+
   UseAutoChecker    = True;   // ***Auto checks for most updated version and dowloads it.***
 
 Procedure DeclarePlayers;
@@ -48,8 +57,8 @@ Begin
     Name        := '';         // ***RS Username***
     Pass        := '';         // ***RS Pass***
     Pin         := '';         // ***RS Pin***
-    PTS         := 2;          // ***Pouch to summon, 1 for terrorbird, 2 for wartort, 3 for yak, 0 for nothing***
-    BoxRewards  := ['Coins', 'oins'];
+    PTS         := 0;          // ***Pouch to summon, 1 for terrorbird, 2 for wartort, 3 for yak, 0 for nothing***
+    WorldInfo   := [];         // ***World Desired***
     Active      := True;
   End;
 End;
@@ -63,17 +72,18 @@ End;
 
 
 Const
-  ScriptVersion = '1.24' ;
+  ScriptVersion = '1.26' ;
   Debug = False;
 
 Var
- BankTime,Ring,HerbDTM,RingDTM,TabDTM,BoneCount,XP,StartTime,StartingExperience,BonesPH,XPH,DoorX1,DoorY1,DoorX2,DoorY2: Integer;
+ BankTime,Ring,HerbDTM,RingDTM,TabDTM,BoneCount,XP,StartingExperience,BonesPH,XPH,DoorX1,DoorY1,DoorX2,DoorY2: Integer;
  DoorHue,DoorSat,BurnerHue,BurnerSat,Afound: Extended;
  DoorColor,DoorTolerance,SummoningTimer,Summoning,Empty,BurnerColor,BurnerTolerance,TRingDTM,MaxTime: Integer;
  Pouch,AltarX1,AltarY1,AltarX2,AltarY2, NewPouch,Bones,Lengths,MaxLength,BurnerLength,FailedBurners: Integer;
  BounceX,BounceY,TzhaarDTM,AltarDTM,M: Integer;
  Direction: String;
  StartSummon,Walk,ClickLefts,FailDTM,NoFamiliar: Boolean;
+ StartTime,CurrentTime: Int64;
 
 Procedure SetDTM;
 Begin
@@ -100,11 +110,75 @@ Begin
   FreeDTM(AltarDTM);
 End;
 
+//by LeJingle!!!
+procedure ConvertTime64(timeMS:int64; var YEAR, MONTH, WEEK, DAY, HOUR, MINUTE, SECOND:integer);
+var
+  x: int64;
+begin
+  x := timeMS;
+  (* Better to do the calculations in my opinion (especially for year) now,
+   * trying at run time usually results in breaking/miscalculation.
+   * Hence, commented out [equilavent] expressions
+   *)
+  YEAR   := x div (31536000000); // 1000 * 60 * 60 * 24 * 365 (1 year or 365 days)
+  x      := x mod (31536000000);
+  MONTH  := x div (2592000000); // 1000 * 60 * 60 * 24 * 30 (1 month or 30 days)
+  x      := x mod (2592000000);
+  WEEK   := x div (604800000); // 1000 * 60 * 60 * 24 * 7 (1 week or 7 days)
+  x      := x mod (604800000);
+  DAY    := x div (86400000); // 1000 * 60 * 60 * 24 (1 day or 24 hours)
+  x      := x mod (86400000);
+  HOUR   := x div (3600000); // 1000 * 60 * 60 (1 hour or 60 minutes)
+  x      := x mod (3600000);
+  MINUTE := x div (60000); // 1000 * 60 (1 minute or 60 seconds)
+  x      := x mod (60000);
+  SECOND := x div (1000); // 1000 (1 second, is in MS format now)
+  x      := x mod (1000);
+end;
+
+function MsToTime64(MS: int64): string;
+var
+  STA: TVariantArray;
+  Time: array [0..6] of Integer;
+  i: Integer;
+begin
+  Result := '';
+  STA := [' Years, ', ' Months, ', ' Weeks, ', ' Days, ', ' Hours, ',
+          ' Minutes and ', ' Seconds', 0];
+  ConvertTime64(MS, Time[0], Time[1], Time[2], Time[3], Time[4], Time[5], Time[6]);
+
+  if time[0]= 1 then
+    sta[0]:=' Year, ';
+
+  if time[1]= 1 then
+    sta[1]:=' Month, ';
+
+  if time[2]= 1 then
+    sta[2]:=' Week, ';
+
+  if time[3]= 1 then
+    sta[3]:=' Day, ';
+
+  if time[4]= 1 then
+    sta[4]:=' Hour, ';
+
+  if time[5]= 1 then
+    sta[5]:=' Minute and ';
+
+  if time[6]= 1 then
+    sta[6]:=' Second';
+
+  for i := 0 to 6 do
+    if (Time[i] > 0) or (STA[7]) or (i = 6) then
+      Result := Result + PadZ(IntToStr(Time[i]), STA[7]) + STA[i];
+end;
+
 Procedure ProgressReport;
 Begin
   If Not Debug Then
     ClearDebug;
 
+  CurrentTime:= GetSystemTime - StartTime;
   BoneCount := BoneCount + Bones;
   XP := (GetXPBarTotal - StartingExperience);
   XPH := Round(XP * (3600.0 / (GetTimeRunning / 1000.0)));
@@ -112,7 +186,7 @@ Begin
 
   Writeln('=========AshamanAltars=========');
   Writeln('=========Version: '+ScriptVersion+'=========');
-  Writeln('Time Running: ' + TimeRunning);
+  Writeln('Time Running: ' + ToStr(MsToTime64(CurrentTime)));
   Writeln('Item Type: ' + BoneorAshType);
   Writeln('Bones&Ashes Used: ' + IntToStr(BoneCount));
   Writeln('Experience Earned: ' + IntToStr(XP));
@@ -182,79 +256,6 @@ begin
     WriteLn('!!!!! Not checking for latest version, you may be outdated!');
 end;
 
- {*******************************************************************************
-
-By: GGzz , edited
-
-*******************************************************************************}
-
-Function WaitGameTab(Tab, TimeToWait: Integer): Boolean;
-Var
-  T: Integer;
-begin
-  Result := False;
-  GameTab(Tab);
-  If Debug Then
-    Writeln('Waiting on tab '+ToStr(Tab));
-  T := GetSystemTime + TimeToWait;
-  while (GetSystemTime < T) do
-  begin
-    if (GetCurrentTab = Tab) then
-    begin
-      Result := True;
-      Exit;
-    end;
-    Wait(20 + Random(10));
-  end;
-end;
-
- {*******************************************************************************
-
-By: Sin , edited
-
-*******************************************************************************}
-
-function WaitInvCountInc(Time:Integer):Boolean;
-var
-  Inv1,Inv2,t:Integer;
-begin
-  MarkTime(t);
-  Inv1 := InvCount;
-  repeat
-    wait(10);
-    Inv2 := InvCount;
-    if TimeFromMark(t) > Time then
-    begin
-      Result := False;
-      Exit;
-    end;
-  until(Inv2 > Inv1);
-  Result := True;
-end;
-
-{*******************************************************************************
-
-By: Sin , edited
-
-*******************************************************************************}
-
-function WaitInvCountDec(Time:Integer):Boolean;
-var
-  Inv1,Inv2,t:Integer;
-begin
-  MarkTime(t);
-  Inv1 := InvCount;
-  repeat
-    wait(10);
-    Inv2 := InvCount;
-    if TimeFromMark(t) > Time then
-    begin
-      Result := False;
-      Exit;
-    end;
-  until(Inv2 < Inv1);
-  Result := True;
-end;
 
  {*******************************************************************************
 
@@ -352,6 +353,266 @@ Begin
   MMouse(eX, eY, ranX, ranY);
   MouseSpeed := j;
 End;
+
+(*
+MmmWeGotOff
+~~~~~~~~
+
+.. code-block:: pascal
+
+    Procedure MmmWeGotOff(RedTu: Variant);
+
+Moves the mouse to the choosen side of the screen, replicating
+the use of a human to move thier mouse "off-screen" as if
+browsing another part of their computer.
+(What do you do when you browsing "other websites?")
+Int Type:
+
+    1 = Go top side, off-screen
+    2 = Go left side, off-screen
+    3 = Go bottom side, off-screen
+    4 = Go right side, off-screen
+
+.. note::
+
+  by Le Jingle.
+
+Example:
+
+.. code-block:: pascal
+
+  MmmWeGotOff(Random(4), 0, 0);
+
+*)
+Procedure OffMM(RedTu, LeWait, rWait: Integer);
+Var
+  W,H,RX,RY,T,RT,X,Y: Integer;
+Begin
+  GetMousePos(X,Y);
+  If (X>0) And (Y>0) Then
+  Begin
+    GetClientDimensions(W,H);
+    H:=H+50;
+    RX := RandomRange(0, W);
+    RY := RandomRange(0, H);
+    Case (RedTu) Of
+      0..1: HumanMMouse(W/2, RandomRange(-110,-60), RX, 0);
+      2: HumanMMouse(RandomRange(-50,-10), H/2, 0, RY);
+      3: HumanMMouse(W/2, h+RandomRange(10,50), RX, 0);
+      4: HumanMMouse(W+RandomRange(10,50), H/2, 0, RY);
+    End;
+    RT:=(Random(rWait));
+    MarkTime(T);
+    Repeat
+      Wait(Random(200));
+    Until TimeFromMark(T)>(LeWait+RT);
+  End;
+End;
+
+//by Home
+function AreaToBoxArray(const AreaX1, AreaY1, AreaX2, AreaY2, Width, Height: Integer): TBoxArray;
+var
+  AreaW, AreaH: Integer;
+  BoxX, BoxY: Integer;
+  x, y, i: Integer;
+begin
+  // Calculate the area dimensions
+  AreaW := AreaX2 - AreaX1 + 1;
+  AreaH := AreaY2 - AreaY1 + 1;
+
+  // Calculate the number of boxes in each dimension
+  BoxX := AreaW div Width;
+  if AreaW mod Width <> 0 then Inc(BoxX);
+  BoxY := AreaH div Height;
+  if AreaH mod Height <> 0 then Inc(BoxY);
+
+  // Set the number of boxes
+  SetLength(Result, BoxX * BoxY);
+
+  // Calculate the boxes
+  i := 0;
+  for y := 0 to BoxY - 1 do
+    for x := 0 to BoxX - 1 do
+    begin
+      Result[i] := IntToBox(AreaX1 + x * Width,
+        AreaY1 + y * Height,
+        Min(AreaX2, AreaX1 + (x + 1) * Width - 1),
+        Min(AreaY2, AreaY1 + (y + 1) * Height - 1));
+      Inc(i);
+    end;
+end;
+
+Procedure CheckMovingObjs(RClick: Boolean);
+var
+  TBA: TBoxArray;
+  MidBox: TPoint;
+  TIA: TIntegerArray;
+  H,I,J,X,Y,T: Integer;
+  TPA,PBox: TPointArray;
+  RCOpts: Array of TOptions;
+begin
+  if not LoggedIn then Exit;
+
+  ColorToleranceSpeed(1);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+
+  PBox := TPAFromBox(IntToBox(240, 130, 275, 185));
+  TBA := AreaToBoxArray(MSX1, MSY1, MSX2, MSY2, 35, 35);
+  TIA := PixelShiftMulti(TBA, 300);
+
+  for H := 0 to High(TBA) do
+  begin
+    if (TIA[H] > 100) then
+    begin
+      MidBox := MiddleBox(TBA[H]);
+      SetArrayLength(TPA, Length(TPA)+1);
+      TPA[High(TPA)] := MidBox;
+    end;
+  end;
+
+  ClearTPAFromTPAWrap(TPA, PBox, TPA);
+  if (Length(TPA) < 1) then Exit;
+
+  I := Random(Length(TPA));
+  HumanMMouse(TPA[I].X, TPA[I].Y, 5, 5);
+
+  if RClick then
+  begin
+    ClickMouse2(False);
+    RCOpts := GetChooseOptions('All');
+    J := Length(RCOpts);
+    Wait(RandomRange(J*75, J*120));
+
+    MarkTime(T);
+    repeat
+      GetMousePos(X, Y);
+      MouseBox(MIX1,MIY1,MIX2,MIY2,Mouse_Move);
+      if (TimeFromMark(T) > 5000) then
+        break;
+      Wait(Random(100));
+    until(not FindTextEx(X,Y,['Choose','Option'],['UpCharsEx'],MSX1,MSY1,MSX2,MSY2))
+
+    if FindTextEx(X,Y,['Choose','Option'],['UpCharsEx'],MSX1,MSY1,MSX2,MSY2) then
+      MMouse(RandomRange(MIX1,MIX2),RandomRange(MIY1,MIY2),0,0);
+  end;
+  SetArrayLength(TPA,0);
+end;
+
+Function Antiban: Boolean;
+Var
+  I: Integer;
+Begin
+  I := Random(600);
+  Case I Of
+    1..3:
+      Begin
+        RandomRClick;
+      End;
+    4..25:
+      Begin
+        HoverSkill('Prayer', False);
+        GameTab(Tab_Inv);
+      End;
+    80..150:
+      Begin
+        CheckMovingObjs(False);
+      End;
+    151..180:
+      Begin
+        CheckMovingObjs(True);
+      End;
+    181..200:
+      Begin
+        SleepAndMoveMouse(RandomRange(400,500));
+        Result:=True;
+      End;
+    201..600:
+      Begin
+        Wait(RandomRange(100, 1500));
+        OffMM(Random(4),RandomRange(2500,3000),1500);
+        Result:=True;
+      End;
+  End;
+  If (InvCount>10) Then
+    Wait(RandomRange(3000,4000)) Else
+    Wait(RandomRange(1000,2000));
+End;
+
+
+ {*******************************************************************************
+
+By: GGzz , edited
+
+*******************************************************************************}
+
+Function WaitGameTab(Tab, TimeToWait: Integer): Boolean;
+Var
+  T: Integer;
+begin
+  Result := False;
+  GameTab(Tab);
+  If Debug Then
+    Writeln('Waiting on tab '+ToStr(Tab));
+  T := GetSystemTime + TimeToWait;
+  while (GetSystemTime < T) do
+  begin
+    if (GetCurrentTab = Tab) then
+    begin
+      Result := True;
+      Exit;
+    end;
+    Wait(20 + Random(10));
+  end;
+end;
+
+ {*******************************************************************************
+
+By: Sin , edited
+
+*******************************************************************************}
+
+function WaitInvCountInc(Time:Integer):Boolean;
+var
+  Inv1,Inv2,t:Integer;
+begin
+  MarkTime(t);
+  Inv1 := InvCount;
+  repeat
+    wait(10);
+    Inv2 := InvCount;
+    if TimeFromMark(t) > Time then
+    begin
+      Result := False;
+      Exit;
+    end;
+  until(Inv2 > Inv1);
+  Result := True;
+end;
+
+{*******************************************************************************
+
+By: Sin , edited
+
+*******************************************************************************}
+
+function WaitInvCountDec(Time:Integer):Boolean;
+var
+  Inv1,Inv2,t:Integer;
+begin
+  MarkTime(t);
+  Inv1 := InvCount;
+  repeat
+    wait(10);
+    Inv2 := InvCount;
+    if TimeFromMark(t) > Time then
+    begin
+      Result := False;
+      Exit;
+    end;
+  until(Inv2 < Inv1);
+  Result := True;
+end;
+
 
 Function UsingFamiliarFS: Boolean;
 Var
@@ -774,6 +1035,7 @@ By: Flight and GGzz
 Function GetRingCount: Integer;
 var
   S, S2: String;
+  T: Integer;
 begin
   If Debug Then
     Writeln('ENTERING GETRINGCOUNT FUNCTION');
@@ -781,9 +1043,13 @@ begin
   if WearingItem(11) then
   begin
     MouseEquippedItem('ring', 3);
-    Wait(RandomRange(175, 250));
+    MarkTime(T);
+    Repeat
+      Wait(RandomRange(175, 250));
+      If IsUpTextMultiCustom(['Ring','ing','duel','ing','Kul','Zo','arge','Tok','kul']) Then
+        Break;
+    Until TimeFromMark(T)>3000;
     S := GetUpText;
-    Wait(RandomRange(175, 250));
     S2 := Between('(', ')', S);
     if not (S2 = '') then
     begin
@@ -844,7 +1110,7 @@ Begin
             Writeln('Didnt find bank symbol');
           Break;
         End;
-      Until FindSymbol(X,Y,'Bank');
+      Until (FindSymbol(X,Y,'Bank')) Or (FindSymbol(X,Y,'Minigame')) Or (CountDots('Yellow')>1) Or (CountDots('White')>1);
     End Else
     Begin
       Writeln('Couldnt find duel ring to get to bank, TERMINATING');
@@ -987,7 +1253,10 @@ End;
 
 Procedure WalkToBank;
 Var
-  X,Y,T: Integer;
+  X,Y,T,CTS: Integer;
+  SearchBox: TBox;
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
 Begin
   If Debug then
     Writeln('ENTERING WALKTOBANK PROCEDURE');
@@ -1001,8 +1270,30 @@ Begin
     If Debug then
       Writeln('Walking to bank symbol');
 
-    FindSymbol(X,Y,'Bank');
-    HumanMMouse(X,Y,2,2);
+    CTS := GetColorToleranceSpeed;
+    ColorToleranceSpeed(2);
+
+    SetColorSpeed2Modifiers(0.52, 0.37);
+    FindColorsSpiralTolerance(MSCX, MSCY, TPA, 7768965, MMX1, MMCY, MMX2, MMY2, 8);
+    ColorToleranceSpeed(CTS);
+    SetColorSpeed2Modifiers(0.2, 0.2);
+
+    ATPA := SplitTPAEx(TPA, 10, 10);
+
+    SortATPASize(ATPA,True);
+
+    If Debug Then
+      DebugATPABounds(ATPA);
+
+    If (Length(ATPA) <> 0) Then
+    Begin
+      SearchBox:=GetTPABounds(ATPA[0]);
+      HumanMMouse(SearchBox.X2-7,SearchBox.Y2-4,2,2);
+    End Else
+      If FindSymbol(X,Y,'Bank') Then
+        HumanMMouse(X,Y,2,2) Else
+        Exit;
+
     ClickMouse2(True);
 
     Wait(RandomRange(1000,1200));
@@ -1402,8 +1693,6 @@ Begin
 
     If Debug then
       Writeln('Clicked Tab');
-
-    HumanMMouse(X,Y,4,4);
   End;
   ClickMouse2(True);
 
@@ -1533,7 +1822,7 @@ Begin
       End;
       If CountItems('DTM',HerbDTM,[]) = 1 Then
       Begin
-        InvMouse(6,Mouse_Move);
+        InvMouse(RandomRange(6,15),Mouse_Move);
         If WaitUpTextMulti(['ury','Bury','ones','bones','shes','tter'],RandomRange(500,600)) Then
         Begin
           ClickMouse2(False);
@@ -1916,7 +2205,7 @@ Begin
         End;
         If CountItems('DTM',HerbDTM,[]) = 1 Then
         Begin
-          InvMouse(6,Mouse_Move);
+          InvMouse(RandomRange(6,15),Mouse_Move);
           If WaitUpTextMulti(['ury','Bury','ones','bones','shes','tter'],RandomRange(500,600)) Then
           Begin
             ClickMouse2(False);
@@ -2317,7 +2606,7 @@ Begin
   ClearDebug;
   Writeln('Make sure you have all your settings in correct!');
   Writeln('If you have problems, 90% of the time it is incorrect setup, make sure you double check settings with OP!');
-  Writeln('Turn on Debug mode (line 67) if you are still having problems and tell me what it says.');
+  Writeln('Turn on Debug mode (line 76) if you are still having problems and tell me what it says.');
   Writeln('Also show me a picture of where it is messing up and what you have exactly typed into the script.');
 
   If (GetCurrentTab)<>(Tab_Equip) Then
@@ -2388,7 +2677,7 @@ Begin
     3: Begin Pouch := DTMFromString('mbQAAAHicY2VgYMhlguAkIC4D4hwgfgQUfwXEL4D4NRDfAuJ9+5YwWJsbM9RV5zJsXjeL4djB1QwiQHF0zIgFgwEACPUPaA=='); NewPouch:=50; Bones:=55; MaxTime:=58; End; //packyak     3000000   50
   End;
 
-  SetAngle(SRL_ANGLE_HIGH);
+  ClickNorth(SRL_ANGLE_HIGH);
 
   If UsingFamiliar Then
     SummoningTimer:=(GetSystemTime-((MaxTime-GetNPCTimer)*60*1000)) Else
@@ -2457,6 +2746,8 @@ Begin
         If InvCount < RandomRange(4,9) Then
           Break;
 
+        AntiBan;
+
         If InvCount < InitialInv Then
         Begin
           InitialInv:=InvCount;
@@ -2481,6 +2772,8 @@ Begin
           If InvCount < RandomRange(4,9) Then
             Break;
 
+          AntiBan;
+
           If InvCount < InitialInv Then
           Begin
             InitialInv:=InvCount;
@@ -2504,6 +2797,8 @@ Begin
 
         If InvCount <= 2 Then
           Break;
+
+        AntiBan;
 
         If InvCount < InitialInv Then
         Begin
