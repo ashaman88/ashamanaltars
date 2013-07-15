@@ -2603,7 +2603,6 @@ Begin
   BankTime:=1;
   Ring:=8;
 
-  ClearDebug;
   Writeln('Make sure you have all your settings in correct!');
   Writeln('If you have problems, 90% of the time it is incorrect setup, make sure you double check settings with OP!');
   Writeln('Turn on Debug mode (line 76) if you are still having problems and tell me what it says.');
