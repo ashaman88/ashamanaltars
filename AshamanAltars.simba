@@ -9,7 +9,7 @@ Var
   PTS: Integer;
 
 {
-AshamanAltars V1.26
+AshamanAltars V1.27
 -READ THE OP TOPIC BEFORE ATTEMPTING TO USE
 -Start at CW bank (or Tzhaar if using that option)
 -Have Teletohousetabs in your inventory (recommend 1st inventory slot)
@@ -72,7 +72,7 @@ End;
 
 
 Const
-  ScriptVersion = '1.26' ;
+  ScriptVersion = '1.27' ;
   Debug = False;
 
 Var
@@ -529,13 +529,15 @@ Begin
     201..600:
       Begin
         Wait(RandomRange(100, 1500));
-        OffMM(Random(4),RandomRange(2500,3000),1500);
+        If PTS=0 Then
+          OffMM(Random(4),RandomRange(2500,3000),1500) Else
+          OffMM(Random(4),RandomRange(500,800),800);
         Result:=True;
       End;
   End;
-  If (InvCount>10) Then
+  If (InvCount>10) And (PTS=0) Then
     Wait(RandomRange(3000,4000)) Else
-    Wait(RandomRange(1000,2000));
+    Wait(RandomRange(700,2000));
 End;
 
 
@@ -1273,7 +1275,7 @@ Begin
     CTS := GetColorToleranceSpeed;
     ColorToleranceSpeed(2);
 
-    SetColorSpeed2Modifiers(0.52, 0.37);
+    SetColorSpeed2Modifiers(0.53, 0.48);
     FindColorsSpiralTolerance(MSCX, MSCY, TPA, 7768965, MMX1, MMCY, MMX2, MMY2, 8);
     ColorToleranceSpeed(CTS);
     SetColorSpeed2Modifiers(0.2, 0.2);
@@ -1288,7 +1290,7 @@ Begin
     If (Length(ATPA) <> 0) Then
     Begin
       SearchBox:=GetTPABounds(ATPA[0]);
-      HumanMMouse(SearchBox.X2-7,SearchBox.Y2-4,2,2);
+      HumanMMouse(SearchBox.X2-4,SearchBox.Y2-4,2,2);
     End Else
       If FindSymbol(X,Y,'Bank') Then
         HumanMMouse(X,Y,2,2) Else
@@ -1535,7 +1537,7 @@ Begin
         TerminateScript;
       End;
 
-      If (LowerCase(RingType)='duel') And (Not FindSymbol(X,Y,'Bank')) Then
+      If (LowerCase(RingType)='duel') And (Not FindSymbol(X,Y,'Bank')) And (Not FindSymbol(X,Y,'Minigame')) And (Not FindSymbol(X,Y,'Water')) Then
       Begin
         If Debug Then
           Writeln('No bank symbol, exiting procedure');
@@ -1706,7 +1708,7 @@ Begin
         Writeln('Bank symbol still there, WTF?');
       Break;
     End;
-  Until Not Findsymbol(X,Y,'Bank');
+  Until (Not FindSymbol(X,Y,'Bank')) And (Not FindSymbol(X,Y,'Minigame')) And (Not FindSymbol(X,Y,'Water'));
   MakeCompass(Direction);
 End;
 
